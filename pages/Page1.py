@@ -2,18 +2,18 @@ from requests import options
 import streamlit as st
 from Home import check_password
 
-if check_password():
-    st.markdown("# Page 1")
 
-    with st.sidebar:
-        choice = st.selectbox("Select a product", options=["Apple", "Orange", "Grape"], index=0)
-        submit = st.button("Change")
+st.markdown("# Page 1")
 
-    if "product" not in st.session_state:
-        st.session_state["product"] = choice
+with st.sidebar:
+    choice = st.selectbox("Select a product", options=["Apple", "Orange", "Grape"], index=0)
+    submit = st.button("Change")
 
-    if submit:
-        st.session_state["product"] = choice
-    
+if "product" not in st.session_state:
+    st.session_state["product"] = choice
 
-    st.write(st.session_state.product)
+if submit:
+    st.session_state["product"] = choice
+
+
+st.write(st.session_state.product)
