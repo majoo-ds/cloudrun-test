@@ -1,6 +1,5 @@
-from requests import options
 import streamlit as st
-from Home import check_password
+
 
 
 st.markdown("# Page 1")
