@@ -3,3 +3,14 @@ numpy
 streamlit
 streamlit-authenticator
 PyYAML
+xlsxwriter
+openpyxl
+plotly
+google-cloud-storage
+google-auth
+wordcloud
+matplotlib
+fsspec
+gcsfs
+streamlit-aggrid
+hydralit-components

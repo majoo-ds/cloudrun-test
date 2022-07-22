@@ -23,9 +23,24 @@ authenticator = Authenticate(
 name, authentication_status, username = authenticator.login('Login', 'main')
 
 if authentication_status:
-    authenticator.logout('Logout', 'main')
-    st.write(f'Welcome *{name}*')
-    st.title('Some content')
+    with st.sidebar:
+        authenticator.logout('Logout', 'main')
+    
+    st.markdown(
+        """
+        ### Overview
+        The purpose of this job is to optimize the conversion target . 
+        By defining this goal, it will help us in gathering and analyzing the data.
+        **👈 Select a from the sidebar** to see further analytical insights
+        ### Sources of Data
+        Until this time, we can do collect several anayltics shown below. 
+        We don't limit ourselves to just use below analytics, we might find others in the near future. 
+        - __Deals Monitoring__
+        Showing daily number of deal or even paid deal based on CRM database updated regularly
+        
+    """
+    )
+    
 elif authentication_status == False:
     st.error('Username/password is incorrect')
 elif authentication_status == None:
