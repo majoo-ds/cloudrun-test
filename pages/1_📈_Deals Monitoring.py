@@ -1,3 +1,4 @@
+import email
 import streamlit as st
 from Home import name, authentication_status, username
 from streamlit_authenticator import Authenticate, SafeLoader
@@ -131,10 +132,19 @@ if st.session_state["authentication_status"]:
                                                         else "paid deal" if row["m_status_code"] == "REJECTED-PAYMENT"
                                                         else "no deal", axis=1)
 
+            
 
             # filter only campaign
             dataframe = dataframe.loc[dataframe["type"] == "campaign"].copy()
             
+            dataframe["reassigned_leads"] = dataframe.apply(lambda row:
+                                                                    "organic" if "organik" in row["campaign_name"]
+                                                                    else "organic" if "organic" in row["campaign_name"]
+                                                                    else "aplikasi kasir" if "appksr" in row["campaign_name"]
+                                                                    else "activity june" if row["submit_at"].month_name() == "June"
+                                                                    else "activity july", axis=1
+                                            )
+
             return dataframe
 
         
@@ -202,7 +212,7 @@ if st.session_state["authentication_status"]:
     ################# DAILY DEALS OF MAJOO MELESAT
     st.markdown("## Reassign Project")
     st.subheader("Daily Deals of Telesales Melesat")
-    st.markdown(f"Total Available Data: __{len(df_melesat)}__")
+    
 
     def get_deal_melesat():
         dataframe = df.loc[df["mt_preleads_code"].isin(df_melesat["mt_preleads_code"].tolist())].copy()
@@ -248,10 +258,18 @@ if st.session_state["authentication_status"]:
     })
     st.plotly_chart(daily_deal_fig, use_container_width=True)
 
+    
+
+    ################################### ALL REASSIGN ###########################
+    st.markdown("#### Total Reassign")
+    st.metric("Total Available Reassign Data", value=format(len(df_melesat), ","))
+    
+    
+    ################## VALUE METRICES
+
     # create column
     col_sum1, col_sum2, col_sum3 = st.columns(3)
 
-    ################## VALUE METRICES
 
     # card 1 (Paid deal)
     deal_grouped = df_deal_melesat_grouped.loc[df_deal_melesat_grouped["deal"] == "deal"].groupby("deal")["mt_preleads_code"].sum()
@@ -287,6 +305,54 @@ if st.session_state["authentication_status"]:
     # card 3 (total deal conversion rate)
     total_all_conversion = total_all/len(df_deal_melesat)
     col_sum3.metric("All Deal Conversion Rate", value=f"{total_all_conversion:.2%}")
+
+
+
+    ################################### RETOUCHED REASSIGN ###########################
+    st.markdown("#### Assigned and Retouched")
+    
+
+    def get_deal_melesat_retouched():
+        dataframe = df.loc[df["mt_preleads_code"].isin(df_melesat["mt_preleads_code"].tolist()) &(df["total_activity"] >=2) & (df["status_code"] == "assigned")].copy()
+
+        return dataframe
+
+
+    df_deal_melesat_retouched = get_deal_melesat_retouched()
+
+    st.metric("Total Assigned Data", value=format(len(df_deal_melesat_retouched), ","))
+    st.markdown(f"% of Assigned and Retouched: __{len(df_deal_melesat_retouched)/len(df_melesat):.2%}__")
+
+    #### groupby
+    df_deal_melesat_retouched_grouped = df_deal_melesat_retouched.groupby([pd.Grouper(key="last_update", freq="D"), "deal"])["mt_preleads_code"].count().to_frame().reset_index()
+
+    col_rtc1, col_rtc2, col_rtc3 = st.columns(3)
+
+    ################## VALUE METRICES
+    # card 1 (Paid deal)
+    col_rtc1.metric("Total Deal", total_deal)
+
+    # card 2 (Paid deal)
+    col_rtc2.metric("Total Paid Deal", total_paid_deal)
+
+
+    # card 3 (All Paid + deal)
+    col_rtc3.metric("Total Paid Deal + Deal", total_all)
+
+
+    ################## PERCENTAGE METRICES
+    # card 1 (deal conversion rate)
+    total_deal_conversion_retouched = total_deal/len(df_deal_melesat_retouched)
+    col_rtc1.metric("Deal Conversion Rate", value=f"{total_deal_conversion_retouched:.2%}")
+
+    # card 2 (paid deal conversion rate)
+    paid_deal_conversion_retouched = total_paid_deal/len(df_deal_melesat_retouched)
+    col_rtc2.metric("Paid Conversion Rate", value=f"{paid_deal_conversion_retouched:.2%}")
+
+    # card 3 (total deal conversion rate)
+    total_all_conversion_retouched = total_all/len(df_deal_melesat_retouched)
+    col_rtc3.metric("All Deal Conversion Rate", value=f"{total_all_conversion_retouched:.2%}")
+
 
 
     ############## SUN BURST DEAL, CAMPAIGN, and STATUS
@@ -382,6 +448,51 @@ if st.session_state["authentication_status"]:
 
     col_top2.markdown(f"__Best {st.session_state.top_performer} Performers in Paid Deal__")
     col_top2.plotly_chart(top_paid_fig, use_container_width=True)
+
+
+
+    ############################### CAMPAIGN PER TELESALES
+    st.subheader("Assigned Campaign Per Telesales")
+    campaign_per_tele = df_deal_melesat.groupby(["status_code", "email_sales", "reassigned_leads"])["mt_preleads_code"].count().to_frame().reset_index()
+
+
+    fig_telesales = px.sunburst(campaign_per_tele, path=["status_code", "email_sales", "reassigned_leads"],
+                        title="Telesales By Number of Assigned", color_discrete_sequence=px.colors.qualitative.Pastel2,
+                    values='mt_preleads_code', width=500, height=500)
+    fig_telesales.update_traces(textinfo="label+percent parent")
+    st.plotly_chart(fig_telesales, use_container_width=True)
+
+    email_sales_df = df_deal_melesat.groupby(["email_sales", "reassigned_leads"])["mt_preleads_code"].count().to_frame().reset_index()
+
+    st.dataframe(email_sales_df)
+
+    buffer = io.BytesIO()
+    with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+        # Write excel with single worksheet
+        email_sales_df.to_excel(writer, index=False)
+        # Close the Pandas Excel writer and output the Excel file to the buffer
+        writer.save()
+
+        # assign file to download button
+        st.download_button(
+            label="Download Data in Excel",
+            data=buffer,
+            file_name=f"telesales_{datetime.datetime.now().strftime('%Y-%m-%d')}.xlsx",
+            mime="application/vnd.ms-excel"
+        )
+
+
+    ##################################### HCW BY REASSIGNED CAMPAIGN
+    st.subheader("HCW by Reassigned Campaign")
+    hcw_df = df_deal_melesat.groupby(["leads_potensial_category", "reassigned_leads"])["mt_preleads_code"].count().to_frame().reset_index()
+
+    fig_hcw = px.sunburst(hcw_df, path=["leads_potensial_category", "reassigned_leads"],
+                        title="HCW by Reassigned Campaign", color_discrete_sequence=px.colors.qualitative.Pastel2,
+                    values='mt_preleads_code', width=500, height=500)
+    fig_hcw.update_traces(textinfo="label+percent parent")
+    st.plotly_chart(fig_hcw, use_container_width=True)
+
+
 
 
 
@@ -526,9 +637,7 @@ if st.session_state["authentication_status"]:
 
 
     ############################## END OF CONTENT
-
-
-
+    
 
 
 elif st.session_state["authentication_status"] == False:
