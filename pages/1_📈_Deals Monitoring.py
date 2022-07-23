@@ -1,4 +1,3 @@
-import email
 import streamlit as st
 from Home import name, authentication_status, username
 from streamlit_authenticator import Authenticate, SafeLoader
@@ -54,6 +53,31 @@ if st.session_state["authentication_status"]:
     
     # bucket name
     bucket_name ="lead-analytics-bucket"
+
+    ####################### PRODUCT DATAFRAME
+    @st.experimental_memo(ttl=1*60*60)
+    def fetch_product():
+            dtypes = {
+                "mt_leads_code": "category",
+                "product_name": "category"
+            }
+            
+            data = pd.read_csv("gs://lead-analytics-bucket/crm_db/product_crm.csv",
+                storage_options={'token': credentials}, 
+                low_memory=False, 
+                dtype=dtypes) # read data frame from csv file
+
+            data.drop_duplicates(subset=["mt_leads_code"], keep="first", inplace=True)
+
+            dataframe = data
+
+            return dataframe
+
+    df_product = fetch_product()
+
+    # product dictionary
+    product_dict = dict(zip(df_product.mt_leads_code, df_product.product_name))
+
 
 
     ###################### ALL DATAFRAME
@@ -145,6 +169,8 @@ if st.session_state["authentication_status"]:
                                                                     else "activity july", axis=1
                                             )
 
+            dataframe["product_name"] = dataframe["mt_leads_code"].map(product_dict)
+
             return dataframe
 
         
@@ -178,30 +204,13 @@ if st.session_state["authentication_status"]:
         
         """
         )
-    ####################### REASSIGN DATAFRAME VERSION I
-    @st.experimental_memo(ttl=1*60*60)
-    def fetch_melesat():
-            dtypes = {
-                "mt_preleads_code": "category",
-            }
-            
-            data = pd.read_csv("gs://lead-analytics-bucket/crm_db/telesales_melesat.csv",
-                storage_options={'token': credentials}, 
-                low_memory=False, 
-                usecols=["mt_preleads_code"], 
-                dtype=dtypes) # read data frame from csv file
+    
 
-            dataframe = data
-
-            return dataframe
-
-
-
-
-    ####################### REASSIGN DATAFRAME VERSION 2 (UPDATED)
+    ####################### REASSIGN DATAFRAME
     def get_retouch():
         dataframe = df.loc[(df["m_sourceentry_code"] == "RETOUCH"), ["mt_preleads_code"]].copy()
-    
+       
+        
         return dataframe
 
 
@@ -212,7 +221,6 @@ if st.session_state["authentication_status"]:
     ################# DAILY DEALS OF MAJOO MELESAT
     st.markdown("## Reassign Project")
     st.subheader("Daily Deals of Telesales Melesat")
-    
 
     def get_deal_melesat():
         dataframe = df.loc[df["mt_preleads_code"].isin(df_melesat["mt_preleads_code"].tolist())].copy()
@@ -222,6 +230,27 @@ if st.session_state["authentication_status"]:
 
     df_deal_melesat = get_deal_melesat()
 
+    # dataframe
+    st.dataframe(df_deal_melesat)
+    
+    # download the dataframe
+    buffer = io.BytesIO()
+    with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+        # Write excel with single worksheet
+        df_deal_melesat.to_excel(writer, index=False)
+        # Close the Pandas Excel writer and output the Excel file to the buffer
+        writer.save()
+
+        # assign file to download button
+        st.download_button(
+            label="Download Data in Excel",
+            data=buffer,
+            file_name=f"melesat_{datetime.datetime.now().strftime('%Y-%m-%d')}.xlsx",
+            mime="application/vnd.ms-excel"
+        )
+
+
+    # Grouper daily data
     df_deal_melesat_grouped = df_deal_melesat.groupby([pd.Grouper(key="last_update", freq="D"), "deal"])["mt_preleads_code"].count().to_frame().reset_index()
 
 
@@ -262,6 +291,8 @@ if st.session_state["authentication_status"]:
 
     ################################### ALL REASSIGN ###########################
     st.markdown("#### Total Reassign")
+
+
     st.metric("Total Available Reassign Data", value=format(len(df_melesat), ","))
     
     
@@ -313,12 +344,29 @@ if st.session_state["authentication_status"]:
     
 
     def get_deal_melesat_retouched():
-        dataframe = df.loc[df["mt_preleads_code"].isin(df_melesat["mt_preleads_code"].tolist()) &(df["total_activity"] >=2) & (df["status_code"] == "assigned")].copy()
+        dataframe = df.loc[df["mt_preleads_code"].isin(df_melesat["mt_preleads_code"].tolist()) &(df["total_activity"] >=2) & (df["status_code"] == "assigned") & (df["last_update"] >= "2022-07-21 17:00:00")].copy()
 
         return dataframe
 
 
     df_deal_melesat_retouched = get_deal_melesat_retouched()
+
+    st.dataframe(df_deal_melesat_retouched)
+    buffer = io.BytesIO()
+    with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+        # Write excel with single worksheet
+        df_deal_melesat_retouched.to_excel(writer, index=False)
+        # Close the Pandas Excel writer and output the Excel file to the buffer
+        writer.save()
+
+        # assign file to download button
+        st.download_button(
+            label="Download Data in Excel",
+            data=buffer,
+            file_name=f"retouched_{datetime.datetime.now().strftime('%Y-%m-%d')}.xlsx",
+            mime="application/vnd.ms-excel"
+        )
+    
 
     st.metric("Total Assigned Data", value=format(len(df_deal_melesat_retouched), ","))
     st.markdown(f"% of Assigned and Retouched: __{len(df_deal_melesat_retouched)/len(df_melesat):.2%}__")
