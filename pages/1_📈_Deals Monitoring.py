@@ -168,8 +168,14 @@ if st.session_state["authentication_status"]:
                                                                     else "activity june" if row["submit_at"].month_name() == "June"
                                                                     else "activity july", axis=1
                                             )
-
+            # product_name
             dataframe["product_name"] = dataframe["mt_leads_code"].map(product_dict)
+
+            # product deal category (regular or CB)
+            # dataframe["type_of_product"] = dataframe.apply(lambda row:
+            #                                                       "CB" if "CB" in row["product_name"]
+            #                                                        else "CB" if "Surprise" in row["product_name"]
+            #                                                        else "Regular", axis=1)
 
             return dataframe
 
@@ -302,7 +308,7 @@ if st.session_state["authentication_status"]:
     col_sum1, col_sum2, col_sum3 = st.columns(3)
 
 
-    # card 1 (Paid deal)
+    # card 1 (deal)
     deal_grouped = df_deal_melesat_grouped.loc[df_deal_melesat_grouped["deal"] == "deal"].groupby("deal")["mt_preleads_code"].sum()
     total_deal = deal_grouped.values[0]
     col_sum1.metric("Total Deal", total_deal)
@@ -339,7 +345,7 @@ if st.session_state["authentication_status"]:
 
 
 
-    ################################### RETOUCHED REASSIGN ###########################
+    ################################### RETOUCHED REASSIGNED ###########################
     st.markdown("#### Assigned and Retouched")
     
 
@@ -368,7 +374,7 @@ if st.session_state["authentication_status"]:
         )
     
 
-    st.metric("Total Assigned Data", value=format(len(df_deal_melesat_retouched), ","))
+    st.metric("Total Retouched Data", value=format(len(df_deal_melesat_retouched), ","))
     st.markdown(f"% of Assigned and Retouched: __{len(df_deal_melesat_retouched)/len(df_melesat):.2%}__")
 
     #### groupby
@@ -378,36 +384,49 @@ if st.session_state["authentication_status"]:
 
     ################## VALUE METRICES
     # card 1 (Paid deal)
-    col_rtc1.metric("Total Deal", total_deal)
+    deal_grouped_retouched = df_deal_melesat_retouched_grouped.loc[df_deal_melesat_retouched_grouped["deal"] == "deal"].groupby("deal")["mt_preleads_code"].sum()
+    total_deal_retouched = deal_grouped_retouched.values[0]
+    col_rtc1.metric("Total Deal", total_deal_retouched)
 
     # card 2 (Paid deal)
-    col_rtc2.metric("Total Paid Deal", total_paid_deal)
+    paid_deal_grouped_retouched = df_deal_melesat_retouched_grouped.loc[df_deal_melesat_retouched_grouped["deal"] == "paid deal"].groupby("deal")["mt_preleads_code"].sum()
+
+    def get_paid_deal_retouch():
+        if len(paid_deal_grouped_retouched) > 0:
+            return paid_deal_grouped_retouched.values[0]
+        else:
+            return 0
+
+    total_paid_deal_retouched = get_paid_deal_retouch()
+    col_rtc2.metric("Total Paid Deal", total_paid_deal_retouched)
 
 
     # card 3 (All Paid + deal)
-    col_rtc3.metric("Total Paid Deal + Deal", total_all)
+    total_all_retouched = total_deal_retouched + total_paid_deal_retouched
+    col_rtc3.metric("Total Paid Deal + Deal", total_all_retouched)
 
 
     ################## PERCENTAGE METRICES
     # card 1 (deal conversion rate)
-    total_deal_conversion_retouched = total_deal/len(df_deal_melesat_retouched)
+    total_deal_conversion_retouched = total_deal_retouched/len(df_deal_melesat_retouched)
     col_rtc1.metric("Deal Conversion Rate", value=f"{total_deal_conversion_retouched:.2%}")
 
     # card 2 (paid deal conversion rate)
-    paid_deal_conversion_retouched = total_paid_deal/len(df_deal_melesat_retouched)
+    paid_deal_conversion_retouched = total_paid_deal_retouched/len(df_deal_melesat_retouched)
     col_rtc2.metric("Paid Conversion Rate", value=f"{paid_deal_conversion_retouched:.2%}")
 
     # card 3 (total deal conversion rate)
-    total_all_conversion_retouched = total_all/len(df_deal_melesat_retouched)
+    total_all_conversion_retouched = total_all_retouched/len(df_deal_melesat_retouched)
     col_rtc3.metric("All Deal Conversion Rate", value=f"{total_all_conversion_retouched:.2%}")
 
 
 
     ############## SUN BURST DEAL, CAMPAIGN, and STATUS
     st.subheader("Number of Deals Based On Status and Campaign")
+    st.markdown("__Retouched Data__")
 
     def get_melesat_status():
-        dataframe = df_deal_melesat.loc[df_deal_melesat["deal"].isin(select_deal)].copy()
+        dataframe = df_deal_melesat_retouched.loc[df_deal_melesat_retouched["deal"].isin(select_deal)].copy()
 
         return dataframe
 
@@ -424,7 +443,7 @@ if st.session_state["authentication_status"]:
 
     ############## SUN BURST DEAL, TELESALES, and STATUS
     st.subheader("Number of Deals Based On Performing Telesales")
-
+    st.markdown("__Retouched Data__")
 
     df_melesat_performer = df_melesat_status.groupby(["deal", "email_sales"])["mt_preleads_code"].count().to_frame().reset_index()
     df_melesat_performer = df_melesat_performer.loc[df_melesat_performer["mt_preleads_code"] >= 1].copy()
@@ -433,7 +452,7 @@ if st.session_state["authentication_status"]:
 
 
     ###### Session State (Slider) #####
-    num_of_top = st.selectbox("Select Top Performers", options=range(1,len(df_melesat_performer)+1), index=9)
+    num_of_top = st.selectbox("Select Top Performers", options=range(1,len(df_melesat_performer)+1), index=4)
 
     # initiate session_state
     if "top_performer" not in st.session_state:
@@ -501,7 +520,8 @@ if st.session_state["authentication_status"]:
 
     ############################### CAMPAIGN PER TELESALES
     st.subheader("Assigned Campaign Per Telesales")
-    campaign_per_tele = df_deal_melesat.groupby(["status_code", "email_sales", "reassigned_leads"])["mt_preleads_code"].count().to_frame().reset_index()
+    st.markdown("__Retouched Data__")
+    campaign_per_tele = df_deal_melesat_retouched.groupby(["status_code", "email_sales", "reassigned_leads"])["mt_preleads_code"].count().to_frame().reset_index()
 
 
     fig_telesales = px.sunburst(campaign_per_tele, path=["status_code", "email_sales", "reassigned_leads"],
@@ -529,10 +549,22 @@ if st.session_state["authentication_status"]:
             mime="application/vnd.ms-excel"
         )
 
+    ############################ REASSIGNED LEADS PER TELESALES ###########################
+    st.subheader("Assigned Campaign Per Telesales")
+    st.markdown("__Retouched Data__")
+    reassigned_leads_per_tele = df_deal_melesat_retouched.groupby(["reassigned_leads", "email_sales"])["mt_preleads_code"].count().to_frame().reset_index()
+
+    fig_reassigned_leads = px.sunburst(campaign_per_tele, path=["reassigned_leads", "email_sales"],
+                        title="Number of Reassigned Leads Per Telesales", color_discrete_sequence=px.colors.qualitative.Pastel2,
+                    values='mt_preleads_code', width=500, height=500)
+    fig_reassigned_leads.update_traces(textinfo="label+percent parent")
+    st.plotly_chart(fig_reassigned_leads, use_container_width=True)
+
 
     ##################################### HCW BY REASSIGNED CAMPAIGN
     st.subheader("HCW by Reassigned Campaign")
-    hcw_df = df_deal_melesat.groupby(["leads_potensial_category", "reassigned_leads"])["mt_preleads_code"].count().to_frame().reset_index()
+    st.markdown("__Retouched Data__")
+    hcw_df = df_deal_melesat_retouched.groupby(["leads_potensial_category", "reassigned_leads"])["mt_preleads_code"].count().to_frame().reset_index()
 
     fig_hcw = px.sunburst(hcw_df, path=["leads_potensial_category", "reassigned_leads"],
                         title="HCW by Reassigned Campaign", color_discrete_sequence=px.colors.qualitative.Pastel2,
