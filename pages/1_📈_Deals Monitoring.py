@@ -148,13 +148,13 @@ if st.session_state["authentication_status"]:
 
             # deal or no deal
             dataframe["deal"] = dataframe.apply(lambda row: 
-                                                        "paid deal" if row["m_status_code"] == "REQUESTED-PAYMENT"
-                                                        else "deal" if row["m_status_code"] == "APPROVED-INVOICE"
-                                                        else "paid deal" if row["m_status_code"] == "PAID"
-                                                        else "deal" if row["m_status_code"] == "REQUEST-INVOICE"
-                                                        else "deal" if row["m_status_code"] == "REJECTED-INVOICE"
-                                                        else "paid deal" if row["m_status_code"] == "REJECTED-PAYMENT"
-                                                        else "no deal", axis=1)
+                                                        "deal" if row["m_status_code"] == "REQUESTED-PAYMENT"
+                                                        else "pipeline" if row["m_status_code"] == "APPROVED-INVOICE"
+                                                        else "deal" if row["m_status_code"] == "PAID"
+                                                        else "pipeline" if row["m_status_code"] == "REQUEST-INVOICE"
+                                                        else "pipeline" if row["m_status_code"] == "REJECTED-INVOICE"
+                                                        else "deal" if row["m_status_code"] == "REJECTED-PAYMENT"
+                                                        else "leads", axis=1)
 
             
 
@@ -166,16 +166,18 @@ if st.session_state["authentication_status"]:
                                                                     else "organic" if "organic" in row["campaign_name"]
                                                                     else "aplikasi kasir" if "appksr" in row["campaign_name"]
                                                                     else "activity june" if row["submit_at"].month_name() == "June"
+                                                                    else "activity may" if row["submit_at"].month_name() == "May"
                                                                     else "activity july", axis=1
                                             )
             # product_name
             dataframe["product_name"] = dataframe["mt_leads_code"].map(product_dict)
 
             # product deal category (regular or CB)
-            # dataframe["type_of_product"] = dataframe.apply(lambda row:
-            #                                                       "CB" if "CB" in row["product_name"]
-            #                                                        else "CB" if "Surprise" in row["product_name"]
-            #                                                        else "Regular", axis=1)
+            dataframe["type_of_product"] = dataframe.apply(lambda row:
+                                                                   "CB" if "CB" in str(row["product_name"])
+                                                                    else "CB" if "Surprise" in str(row["product_name"])
+                                                                    else "Null" if pd.isnull(row["product_name"])
+                                                                    else "Regular", axis=1)
 
             return dataframe
 
@@ -195,17 +197,17 @@ if st.session_state["authentication_status"]:
             """
             Type of Deals:
         
-            __1. Paid Deal:__
+            __1. Deal:__
             
             Status= REQUESTED-PAYMENT, PAID, REJECTED-PAYMENT
             
-            __1. Deal:__
+            __1. Pipeline:__
             
             Status = APPROVED-INVOICE, REQUEST-INVOICE, REJECTED-INVOICE
             
-            __2. No Deal:__
+            __2. Leads:__
             
-            Status = Beyond
+            Status = Beyond, e.g: NEW, FOLLOW-UP
             
         
         """
@@ -264,7 +266,7 @@ if st.session_state["authentication_status"]:
     col1, col2 = st.columns(2)
 
     # multiselect
-    select_deal = col1.multiselect("Type of Deals", options=["deal", "paid deal", "no deal"], default=["deal", "paid deal"])
+    select_deal = col1.multiselect("Type of Deals", options=["deal", "pipeline", "leads"], default=["deal", "pipeline"])
 
     # initiate session_state
     if "select_deal_type" not in st.session_state:
@@ -282,9 +284,9 @@ if st.session_state["authentication_status"]:
     ####### CHART
     daily_deal_fig = px.line (df_deal_melesat_grouped_filtered, x="last_update",
         title=f"Daily Number of {st.session_state.select_deal_type}", y="mt_preleads_code", text="mt_preleads_code", color="deal", color_discrete_map={
-                    "deal": "#006400",
-                    "paid deal": "gold",
-                    "no deal": "#6495ED"
+                    "pipeline": "#006400",
+                    "deal": "gold",
+                    "leads": "#6495ED"
                 })
     daily_deal_fig.update_traces(textposition="bottom right", texttemplate='%{text:,}')
     daily_deal_fig.update_layout({
@@ -309,12 +311,12 @@ if st.session_state["authentication_status"]:
 
 
     # card 1 (deal)
-    deal_grouped = df_deal_melesat_grouped.loc[df_deal_melesat_grouped["deal"] == "deal"].groupby("deal")["mt_preleads_code"].sum()
+    deal_grouped = df_deal_melesat_grouped.loc[df_deal_melesat_grouped["deal"] == "pipeline"].groupby("deal")["mt_preleads_code"].sum()
     total_deal = deal_grouped.values[0]
-    col_sum1.metric("Total Deal", total_deal)
+    col_sum1.metric("Total Pipeline", total_deal)
 
     # card 2 (Paid deal)
-    paid_deal_grouped = df_deal_melesat_grouped.loc[df_deal_melesat_grouped["deal"] == "paid deal"].groupby("deal")["mt_preleads_code"].sum()
+    paid_deal_grouped = df_deal_melesat_grouped.loc[df_deal_melesat_grouped["deal"] == "deal"].groupby("deal")["mt_preleads_code"].sum()
 
     def get_paid_deal():
         if len(paid_deal_grouped) > 0:
@@ -323,25 +325,25 @@ if st.session_state["authentication_status"]:
             return 0
 
     total_paid_deal = get_paid_deal()
-    col_sum2.metric("Total Paid Deal", total_paid_deal)
+    col_sum2.metric("Total Deal", total_paid_deal)
 
     # card 3 (All Paid + deal)
     total_all = total_deal + total_paid_deal
-    col_sum3.metric("Total Paid Deal + Deal", total_all)
+    col_sum3.metric("Total Pipeline + Deal", total_all)
 
 
     ################## PERCENTAGE METRICES
     # card 1 (deal conversion rate)
     total_deal_conversion = total_deal/len(df_deal_melesat)
-    col_sum1.metric("Deal Conversion Rate", value=f"{total_deal_conversion:.2%}")
+    col_sum1.metric("Pipeline Conversion Rate", value=f"{total_deal_conversion:.2%}")
 
     # card 2 (paid deal conversion rate)
     paid_deal_conversion = total_paid_deal/len(df_deal_melesat)
-    col_sum2.metric("Paid Conversion Rate", value=f"{paid_deal_conversion:.2%}")
+    col_sum2.metric("Deal Conversion Rate", value=f"{paid_deal_conversion:.2%}")
 
     # card 3 (total deal conversion rate)
     total_all_conversion = total_all/len(df_deal_melesat)
-    col_sum3.metric("All Deal Conversion Rate", value=f"{total_all_conversion:.2%}")
+    col_sum3.metric("Deal + Pipeline Conversion Rate", value=f"{total_all_conversion:.2%}")
 
 
 
@@ -384,12 +386,12 @@ if st.session_state["authentication_status"]:
 
     ################## VALUE METRICES
     # card 1 (Paid deal)
-    deal_grouped_retouched = df_deal_melesat_retouched_grouped.loc[df_deal_melesat_retouched_grouped["deal"] == "deal"].groupby("deal")["mt_preleads_code"].sum()
+    deal_grouped_retouched = df_deal_melesat_retouched_grouped.loc[df_deal_melesat_retouched_grouped["deal"] == "pipeline"].groupby("deal")["mt_preleads_code"].sum()
     total_deal_retouched = deal_grouped_retouched.values[0]
-    col_rtc1.metric("Total Deal", total_deal_retouched)
+    col_rtc1.metric("Total Pipeline", total_deal_retouched)
 
     # card 2 (Paid deal)
-    paid_deal_grouped_retouched = df_deal_melesat_retouched_grouped.loc[df_deal_melesat_retouched_grouped["deal"] == "paid deal"].groupby("deal")["mt_preleads_code"].sum()
+    paid_deal_grouped_retouched = df_deal_melesat_retouched_grouped.loc[df_deal_melesat_retouched_grouped["deal"] == "deal"].groupby("deal")["mt_preleads_code"].sum()
 
     def get_paid_deal_retouch():
         if len(paid_deal_grouped_retouched) > 0:
@@ -398,26 +400,26 @@ if st.session_state["authentication_status"]:
             return 0
 
     total_paid_deal_retouched = get_paid_deal_retouch()
-    col_rtc2.metric("Total Paid Deal", total_paid_deal_retouched)
+    col_rtc2.metric("Total Deal", total_paid_deal_retouched)
 
 
     # card 3 (All Paid + deal)
     total_all_retouched = total_deal_retouched + total_paid_deal_retouched
-    col_rtc3.metric("Total Paid Deal + Deal", total_all_retouched)
+    col_rtc3.metric("Total Pipeline + Deal", total_all_retouched)
 
 
     ################## PERCENTAGE METRICES
     # card 1 (deal conversion rate)
     total_deal_conversion_retouched = total_deal_retouched/len(df_deal_melesat_retouched)
-    col_rtc1.metric("Deal Conversion Rate", value=f"{total_deal_conversion_retouched:.2%}")
+    col_rtc1.metric("Pipeline Conversion Rate", value=f"{total_deal_conversion_retouched:.2%}")
 
     # card 2 (paid deal conversion rate)
     paid_deal_conversion_retouched = total_paid_deal_retouched/len(df_deal_melesat_retouched)
-    col_rtc2.metric("Paid Conversion Rate", value=f"{paid_deal_conversion_retouched:.2%}")
+    col_rtc2.metric("Deal Conversion Rate", value=f"{paid_deal_conversion_retouched:.2%}")
 
     # card 3 (total deal conversion rate)
     total_all_conversion_retouched = total_all_retouched/len(df_deal_melesat_retouched)
-    col_rtc3.metric("All Deal Conversion Rate", value=f"{total_all_conversion_retouched:.2%}")
+    col_rtc3.metric("Pipeline + Deal Conversion Rate", value=f"{total_all_conversion_retouched:.2%}")
 
 
 
@@ -469,7 +471,7 @@ if st.session_state["authentication_status"]:
 
     ##### TOP DEAL
     def get_top_deal():
-        dataframe = df_melesat_performer.loc[df_melesat_performer["deal"] == "deal"].copy()
+        dataframe = df_melesat_performer.loc[df_melesat_performer["deal"] == "pipeline"].copy()
         dataframe = dataframe.tail(st.session_state.top_performer)
 
         return dataframe
@@ -494,7 +496,7 @@ if st.session_state["authentication_status"]:
 
     ##### PAID DEAL
     def get_top_paid():
-        dataframe = df_melesat_performer.loc[df_melesat_performer["deal"] == "paid deal"].copy()
+        dataframe = df_melesat_performer.loc[df_melesat_performer["deal"] == "deal"].copy()
         dataframe = dataframe.tail(st.session_state.top_performer)
 
         return dataframe
@@ -604,7 +606,7 @@ if st.session_state["authentication_status"]:
     colreg1, colreg2 = st.columns(2)
 
     # multiselect
-    select_deal_regular = colreg1.multiselect("Type of Deals", options=["deal", "paid deal", "no deal"], default=["deal", "paid deal"], key="regular")
+    select_deal_regular = colreg1.multiselect("Type of Deals", options=["deal", "pipeline", "no deal"], default=["deal", "pipeline"], key="regular")
 
     # select Month
     month_name = colreg2.selectbox("Select Month", options=["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], index=6)
@@ -634,9 +636,9 @@ if st.session_state["authentication_status"]:
     ####### CHART
     daily_regular_fig = px.line (df_deal_regular_grouped_filtered, x="last_update",
         title=f"Daily Number of {st.session_state.select_deal_type_regular}", y="mt_preleads_code", text="mt_preleads_code", color="deal", color_discrete_map={
-                    "deal": "#006400",
-                    "paid deal": "gold",
-                    "no deal": "#6495ED"
+                    "pipeline": "#006400",
+                    "deal": "gold",
+                    "leads": "#6495ED"
                 })
     daily_regular_fig.update_traces(textposition="bottom right", texttemplate='%{text:,}')
     daily_regular_fig.update_layout({
@@ -661,12 +663,12 @@ if st.session_state["authentication_status"]:
     ################## VALUE METRICES
 
     # card 1 (Paid deal)
-    deal_grouped_regular = df_deal_regular_grouped_filtered.loc[df_deal_regular_grouped_filtered["deal"] == "deal"].groupby("deal")["mt_preleads_code"].sum()
+    deal_grouped_regular = df_deal_regular_grouped_filtered.loc[df_deal_regular_grouped_filtered["deal"] == "pipeline"].groupby("deal")["mt_preleads_code"].sum()
     total_deal_regular = deal_grouped_regular.values[0]
-    col_reg1.metric("Total Deal", total_deal_regular)
+    col_reg1.metric("Total Pipeline", total_deal_regular)
 
     # card 2 (Paid deal)
-    paid_deal_grouped_regular = df_deal_regular_grouped_filtered.loc[df_deal_regular_grouped_filtered["deal"] == "paid deal"].groupby("deal")["mt_preleads_code"].sum()
+    paid_deal_grouped_regular = df_deal_regular_grouped_filtered.loc[df_deal_regular_grouped_filtered["deal"] == "deal"].groupby("deal")["mt_preleads_code"].sum()
 
     def get_paid_deal_regular():
         if len(paid_deal_grouped_regular) > 0:
@@ -675,25 +677,25 @@ if st.session_state["authentication_status"]:
             return 0
 
     total_paid_deal_regular = get_paid_deal_regular()
-    col_reg2.metric("Total Paid Deal", total_paid_deal_regular)
+    col_reg2.metric("Total Deal", total_paid_deal_regular)
 
     # card 3 (All Paid + deal)
     total_all_regular = total_deal_regular + total_paid_deal_regular
-    col_reg3.metric("Total Paid Deal + Deal", total_all_regular)
+    col_reg3.metric("Total Pipeline + Deal", total_all_regular)
 
 
     ################## PERCENTAGE METRICES
     # card 1 (deal conversion rate)
     total_deal_conversion_regular = total_deal_regular/total_available_regular
-    col_reg1.metric("Deal Conversion Rate", value=f"{total_deal_conversion_regular:.2%}")
+    col_reg1.metric("Pipeline Conversion Rate", value=f"{total_deal_conversion_regular:.2%}")
 
     # card 2 (paid deal conversion rate)
     paid_deal_conversion_regular = total_paid_deal_regular/total_available_regular
-    col_reg2.metric("Paid Conversion Rate", value=f"{paid_deal_conversion_regular:.2%}")
+    col_reg2.metric("Deal Conversion Rate", value=f"{paid_deal_conversion_regular:.2%}")
 
     # card 3 (total deal conversion rate)
     total_all_conversion_regular = total_all/total_available_regular
-    col_reg3.metric("All Deal Conversion Rate", value=f"{total_all_conversion_regular:.2%}")
+    col_reg3.metric("Pipeline + Deal Conversion Rate", value=f"{total_all_conversion_regular:.2%}")
 
 
     ############## SUN BURST DEAL, SOUCRE ENTRY, and STATUS
