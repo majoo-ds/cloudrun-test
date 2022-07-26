@@ -239,7 +239,7 @@ if st.session_state["authentication_status"]:
     df_deal_melesat = get_deal_melesat()
 
     # dataframe
-    st.dataframe(df_deal_melesat)
+    st.dataframe(df_deal_melesat.head(10))
     
     # download the dataframe
     buffer = io.BytesIO()
@@ -597,7 +597,7 @@ if st.session_state["authentication_status"]:
 
     df_deal_regular = get_deal_regular()
 
-    st.dataframe(df_deal_regular)
+    st.dataframe(df_deal_regular.head(10))
 
     df_deal_regular_grouped = df_deal_regular.groupby([pd.Grouper(key="last_update", freq="D"), "deal"])["mt_preleads_code"].count().to_frame().reset_index()
 
