@@ -258,92 +258,92 @@ if st.session_state["authentication_status"]:
         )
 
 
-    # Grouper daily data
-    df_deal_melesat_grouped = df_deal_melesat.groupby([pd.Grouper(key="last_update", freq="D"), "deal"])["mt_preleads_code"].count().to_frame().reset_index()
+    # # Grouper daily data
+    # df_deal_melesat_grouped = df_deal_melesat.groupby([pd.Grouper(key="last_update", freq="D"), "deal"])["mt_preleads_code"].count().to_frame().reset_index()
 
 
-    # create filter to select dataframe (deal)
-    col1, col2 = st.columns(2)
+    # # create filter to select dataframe (deal)
+    # col1, col2 = st.columns(2)
 
-    # multiselect
-    select_deal = col1.multiselect("Type of Deals", options=["deal", "pipeline", "leads"], default=["deal", "pipeline"])
+    # # multiselect
+    # select_deal = col1.multiselect("Type of Deals", options=["deal", "pipeline", "leads"], default=["deal", "pipeline"])
 
-    # initiate session_state
-    if "select_deal_type" not in st.session_state:
-        st.session_state["select_deal_type"] = select_deal
+    # # initiate session_state
+    # if "select_deal_type" not in st.session_state:
+    #     st.session_state["select_deal_type"] = select_deal
 
-    # filtered dataframe based on multiselect
-    def get_melesat_select():
-        dataframe = df_deal_melesat_grouped.loc[df_deal_melesat_grouped["deal"].isin(select_deal)].copy()
+    # # filtered dataframe based on multiselect
+    # def get_melesat_select():
+    #     dataframe = df_deal_melesat_grouped.loc[df_deal_melesat_grouped["deal"].isin(select_deal)].copy()
 
-        return dataframe
+    #     return dataframe
 
-    df_deal_melesat_grouped_filtered = get_melesat_select()
+    # df_deal_melesat_grouped_filtered = get_melesat_select()
 
 
-    ####### CHART
-    daily_deal_fig = px.line (df_deal_melesat_grouped_filtered, x="last_update",
-        title=f"Daily Number of {st.session_state.select_deal_type}", y="mt_preleads_code", text="mt_preleads_code", color="deal", color_discrete_map={
-                    "pipeline": "#006400",
-                    "deal": "gold",
-                    "leads": "#6495ED"
-                })
-    daily_deal_fig.update_traces(textposition="bottom right", texttemplate='%{text:,}')
-    daily_deal_fig.update_layout({
-    'plot_bgcolor': 'rgba(0, 0, 0, 0)',
-    'paper_bgcolor': 'rgba(0, 0, 0, 0)',
-    })
-    st.plotly_chart(daily_deal_fig, use_container_width=True)
+    # ####### CHART
+    # daily_deal_fig = px.line (df_deal_melesat_grouped_filtered, x="last_update",
+    #     title=f"Daily Number of {st.session_state.select_deal_type}", y="mt_preleads_code", text="mt_preleads_code", color="deal", color_discrete_map={
+    #                 "pipeline": "#006400",
+    #                 "deal": "gold",
+    #                 "leads": "#6495ED"
+    #             })
+    # daily_deal_fig.update_traces(textposition="bottom right", texttemplate='%{text:,}')
+    # daily_deal_fig.update_layout({
+    # 'plot_bgcolor': 'rgba(0, 0, 0, 0)',
+    # 'paper_bgcolor': 'rgba(0, 0, 0, 0)',
+    # })
+    # st.plotly_chart(daily_deal_fig, use_container_width=True)
 
     
 
     ################################### ALL REASSIGN ###########################
-    st.markdown("#### Total Reassign")
+    # st.markdown("#### Total Reassign")
 
 
-    st.metric("Total Available Reassign Data", value=format(len(df_melesat), ","))
+    # st.metric("Total Available Reassign Data", value=format(len(df_melesat), ","))
     
     
-    ################## VALUE METRICES
+    # ################## VALUE METRICES
 
-    # create column
-    col_sum1, col_sum2, col_sum3 = st.columns(3)
-
-
-    # card 1 (deal)
-    deal_grouped = df_deal_melesat_grouped.loc[df_deal_melesat_grouped["deal"] == "pipeline"].groupby("deal")["mt_preleads_code"].sum()
-    total_deal = deal_grouped.values[0]
-    col_sum1.metric("Total Pipeline", total_deal)
-
-    # card 2 (Paid deal)
-    paid_deal_grouped = df_deal_melesat_grouped.loc[df_deal_melesat_grouped["deal"] == "deal"].groupby("deal")["mt_preleads_code"].sum()
-
-    def get_paid_deal():
-        if len(paid_deal_grouped) > 0:
-            return paid_deal_grouped.values[0]
-        else:
-            return 0
-
-    total_paid_deal = get_paid_deal()
-    col_sum2.metric("Total Deal", total_paid_deal)
-
-    # card 3 (All Paid + deal)
-    total_all = total_deal + total_paid_deal
-    col_sum3.metric("Total Pipeline + Deal", total_all)
+    # # create column
+    # col_sum1, col_sum2, col_sum3 = st.columns(3)
 
 
-    ################## PERCENTAGE METRICES
-    # card 1 (deal conversion rate)
-    total_deal_conversion = total_deal/len(df_deal_melesat)
-    col_sum1.metric("Pipeline Conversion Rate", value=f"{total_deal_conversion:.2%}")
+    # # card 1 (deal)
+    # deal_grouped = df_deal_melesat_grouped.loc[df_deal_melesat_grouped["deal"] == "pipeline"].groupby("deal")["mt_preleads_code"].sum()
+    # total_deal = deal_grouped.values[0]
+    # col_sum1.metric("Total Pipeline", total_deal)
 
-    # card 2 (paid deal conversion rate)
-    paid_deal_conversion = total_paid_deal/len(df_deal_melesat)
-    col_sum2.metric("Deal Conversion Rate", value=f"{paid_deal_conversion:.2%}")
+    # # card 2 (Paid deal)
+    # paid_deal_grouped = df_deal_melesat_grouped.loc[df_deal_melesat_grouped["deal"] == "deal"].groupby("deal")["mt_preleads_code"].sum()
 
-    # card 3 (total deal conversion rate)
-    total_all_conversion = total_all/len(df_deal_melesat)
-    col_sum3.metric("Deal + Pipeline Conversion Rate", value=f"{total_all_conversion:.2%}")
+    # def get_paid_deal():
+    #     if len(paid_deal_grouped) > 0:
+    #         return paid_deal_grouped.values[0]
+    #     else:
+    #         return 0
+
+    # total_paid_deal = get_paid_deal()
+    # col_sum2.metric("Total Deal", total_paid_deal)
+
+    # # card 3 (All Paid + deal)
+    # total_all = total_deal + total_paid_deal
+    # col_sum3.metric("Total Pipeline + Deal", total_all)
+
+
+    # ################## PERCENTAGE METRICES
+    # # card 1 (deal conversion rate)
+    # total_deal_conversion = total_deal/len(df_deal_melesat)
+    # col_sum1.metric("Pipeline Conversion Rate", value=f"{total_deal_conversion:.2%}")
+
+    # # card 2 (paid deal conversion rate)
+    # paid_deal_conversion = total_paid_deal/len(df_deal_melesat)
+    # col_sum2.metric("Deal Conversion Rate", value=f"{paid_deal_conversion:.2%}")
+
+    # # card 3 (total deal conversion rate)
+    # total_all_conversion = total_all/len(df_deal_melesat)
+    # col_sum3.metric("Deal + Pipeline Conversion Rate", value=f"{total_all_conversion:.2%}")
 
 
 
@@ -376,203 +376,203 @@ if st.session_state["authentication_status"]:
         )
     
 
-    st.metric("Total Retouched Data", value=format(len(df_deal_melesat_retouched), ","))
-    st.markdown(f"% of Assigned and Retouched: __{len(df_deal_melesat_retouched)/len(df_melesat):.2%}__")
+    # st.metric("Total Retouched Data", value=format(len(df_deal_melesat_retouched), ","))
+    # st.markdown(f"% of Assigned and Retouched: __{len(df_deal_melesat_retouched)/len(df_melesat):.2%}__")
 
-    #### groupby
-    df_deal_melesat_retouched_grouped = df_deal_melesat_retouched.groupby([pd.Grouper(key="last_update", freq="D"), "deal"])["mt_preleads_code"].count().to_frame().reset_index()
+    # #### groupby
+    # df_deal_melesat_retouched_grouped = df_deal_melesat_retouched.groupby([pd.Grouper(key="last_update", freq="D"), "deal"])["mt_preleads_code"].count().to_frame().reset_index()
 
-    col_rtc1, col_rtc2, col_rtc3 = st.columns(3)
+    # col_rtc1, col_rtc2, col_rtc3 = st.columns(3)
 
-    ################## VALUE METRICES
-    # card 1 (Paid deal)
-    deal_grouped_retouched = df_deal_melesat_retouched_grouped.loc[df_deal_melesat_retouched_grouped["deal"] == "pipeline"].groupby("deal")["mt_preleads_code"].sum()
-    total_deal_retouched = deal_grouped_retouched.values[0]
-    col_rtc1.metric("Total Pipeline", total_deal_retouched)
+    # ################## VALUE METRICES
+    # # card 1 (Paid deal)
+    # deal_grouped_retouched = df_deal_melesat_retouched_grouped.loc[df_deal_melesat_retouched_grouped["deal"] == "pipeline"].groupby("deal")["mt_preleads_code"].sum()
+    # total_deal_retouched = deal_grouped_retouched.values[0]
+    # col_rtc1.metric("Total Pipeline", total_deal_retouched)
 
-    # card 2 (Paid deal)
-    paid_deal_grouped_retouched = df_deal_melesat_retouched_grouped.loc[df_deal_melesat_retouched_grouped["deal"] == "deal"].groupby("deal")["mt_preleads_code"].sum()
+    # # card 2 (Paid deal)
+    # paid_deal_grouped_retouched = df_deal_melesat_retouched_grouped.loc[df_deal_melesat_retouched_grouped["deal"] == "deal"].groupby("deal")["mt_preleads_code"].sum()
 
-    def get_paid_deal_retouch():
-        if len(paid_deal_grouped_retouched) > 0:
-            return paid_deal_grouped_retouched.values[0]
-        else:
-            return 0
+    # def get_paid_deal_retouch():
+    #     if len(paid_deal_grouped_retouched) > 0:
+    #         return paid_deal_grouped_retouched.values[0]
+    #     else:
+    #         return 0
 
-    total_paid_deal_retouched = get_paid_deal_retouch()
-    col_rtc2.metric("Total Deal", total_paid_deal_retouched)
+    # total_paid_deal_retouched = get_paid_deal_retouch()
+    # col_rtc2.metric("Total Deal", total_paid_deal_retouched)
 
 
-    # card 3 (All Paid + deal)
-    total_all_retouched = total_deal_retouched + total_paid_deal_retouched
-    col_rtc3.metric("Total Pipeline + Deal", total_all_retouched)
+    # # card 3 (All Paid + deal)
+    # total_all_retouched = total_deal_retouched + total_paid_deal_retouched
+    # col_rtc3.metric("Total Pipeline + Deal", total_all_retouched)
 
 
-    ################## PERCENTAGE METRICES
-    # card 1 (deal conversion rate)
-    total_deal_conversion_retouched = total_deal_retouched/len(df_deal_melesat_retouched)
-    col_rtc1.metric("Pipeline Conversion Rate", value=f"{total_deal_conversion_retouched:.2%}")
+    # ################## PERCENTAGE METRICES
+    # # card 1 (deal conversion rate)
+    # total_deal_conversion_retouched = total_deal_retouched/len(df_deal_melesat_retouched)
+    # col_rtc1.metric("Pipeline Conversion Rate", value=f"{total_deal_conversion_retouched:.2%}")
 
-    # card 2 (paid deal conversion rate)
-    paid_deal_conversion_retouched = total_paid_deal_retouched/len(df_deal_melesat_retouched)
-    col_rtc2.metric("Deal Conversion Rate", value=f"{paid_deal_conversion_retouched:.2%}")
+    # # card 2 (paid deal conversion rate)
+    # paid_deal_conversion_retouched = total_paid_deal_retouched/len(df_deal_melesat_retouched)
+    # col_rtc2.metric("Deal Conversion Rate", value=f"{paid_deal_conversion_retouched:.2%}")
 
-    # card 3 (total deal conversion rate)
-    total_all_conversion_retouched = total_all_retouched/len(df_deal_melesat_retouched)
-    col_rtc3.metric("Pipeline + Deal Conversion Rate", value=f"{total_all_conversion_retouched:.2%}")
+    # # card 3 (total deal conversion rate)
+    # total_all_conversion_retouched = total_all_retouched/len(df_deal_melesat_retouched)
+    # col_rtc3.metric("Pipeline + Deal Conversion Rate", value=f"{total_all_conversion_retouched:.2%}")
 
 
 
-    ############## SUN BURST DEAL, CAMPAIGN, and STATUS
-    st.subheader("Number of Deals Based On Status and Campaign")
-    st.markdown("__Retouched Data__")
+    # ############## SUN BURST DEAL, CAMPAIGN, and STATUS
+    # st.subheader("Number of Deals Based On Status and Campaign")
+    # st.markdown("__Retouched Data__")
 
-    def get_melesat_status():
-        dataframe = df_deal_melesat_retouched.loc[df_deal_melesat_retouched["deal"].isin(select_deal)].copy()
+    # def get_melesat_status():
+    #     dataframe = df_deal_melesat_retouched.loc[df_deal_melesat_retouched["deal"].isin(select_deal)].copy()
 
-        return dataframe
+    #     return dataframe
 
-    df_melesat_status = get_melesat_status()
+    # df_melesat_status = get_melesat_status()
 
-    df_melesat_status_grouped = df_melesat_status.groupby(["deal", "campaign_name", "m_status_code"])["mt_preleads_code"].count().to_frame().reset_index()
+    # df_melesat_status_grouped = df_melesat_status.groupby(["deal", "campaign_name", "m_status_code"])["mt_preleads_code"].count().to_frame().reset_index()
 
-    fig_status = px.sunburst(df_melesat_status_grouped, path=["deal", "campaign_name", "m_status_code"],
-                        title="Number of Deals Based on Status and Campaign", color_discrete_sequence=px.colors.qualitative.Pastel2,
-                    values='mt_preleads_code', width=500, height=500)
-    fig_status.update_traces(textinfo="label+percent parent")
-    st.plotly_chart(fig_status, use_container_width=True)
+    # fig_status = px.sunburst(df_melesat_status_grouped, path=["deal", "campaign_name", "m_status_code"],
+    #                     title="Number of Deals Based on Status and Campaign", color_discrete_sequence=px.colors.qualitative.Pastel2,
+    #                 values='mt_preleads_code', width=500, height=500)
+    # fig_status.update_traces(textinfo="label+percent parent")
+    # st.plotly_chart(fig_status, use_container_width=True)
 
 
-    ############## SUN BURST DEAL, TELESALES, and STATUS
-    st.subheader("Number of Deals Based On Performing Telesales")
-    st.markdown("__Retouched Data__")
+    # ############## SUN BURST DEAL, TELESALES, and STATUS
+    # st.subheader("Number of Deals Based On Performing Telesales")
+    # st.markdown("__Retouched Data__")
 
-    df_melesat_performer = df_melesat_status.groupby(["deal", "email_sales"])["mt_preleads_code"].count().to_frame().reset_index()
-    df_melesat_performer = df_melesat_performer.loc[df_melesat_performer["mt_preleads_code"] >= 1].copy()
-    df_melesat_performer = df_melesat_performer.sort_values(by="mt_preleads_code", ascending=True)
+    # df_melesat_performer = df_melesat_status.groupby(["deal", "email_sales"])["mt_preleads_code"].count().to_frame().reset_index()
+    # df_melesat_performer = df_melesat_performer.loc[df_melesat_performer["mt_preleads_code"] >= 1].copy()
+    # df_melesat_performer = df_melesat_performer.sort_values(by="mt_preleads_code", ascending=True)
 
 
 
-    ###### Session State (Slider) #####
-    num_of_top = st.selectbox("Select Top Performers", options=range(1,len(df_melesat_performer)+1), index=4)
+    # ###### Session State (Slider) #####
+    # num_of_top = st.selectbox("Select Top Performers", options=range(1,len(df_melesat_performer)+1), index=4)
 
-    # initiate session_state
-    if "top_performer" not in st.session_state:
-        st.session_state["top_performer"] = num_of_top
+    # # initiate session_state
+    # if "top_performer" not in st.session_state:
+    #     st.session_state["top_performer"] = num_of_top
 
-    change_top_performer  = st.button("Change Number Performers")
+    # change_top_performer  = st.button("Change Number Performers")
 
-    if change_top_performer:
-        st.session_state["top_performer"] = num_of_top
+    # if change_top_performer:
+    #     st.session_state["top_performer"] = num_of_top
 
-    ####### create columns
-    col_top1, col_top2 = st.columns(2)
+    # ####### create columns
+    # col_top1, col_top2 = st.columns(2)
 
 
-    ##### TOP DEAL
-    def get_top_deal():
-        dataframe = df_melesat_performer.loc[df_melesat_performer["deal"] == "pipeline"].copy()
-        dataframe = dataframe.tail(st.session_state.top_performer)
+    # ##### TOP DEAL
+    # def get_top_deal():
+    #     dataframe = df_melesat_performer.loc[df_melesat_performer["deal"] == "pipeline"].copy()
+    #     dataframe = dataframe.tail(st.session_state.top_performer)
 
-        return dataframe
+    #     return dataframe
 
-    top_deal_df = get_top_deal()
+    # top_deal_df = get_top_deal()
 
-    top_deal_fig = go.Figure(data=[go.Bar(
-                x=top_deal_df["mt_preleads_code"], y=top_deal_df["email_sales"],
-                text=top_deal_df["mt_preleads_code"], orientation="h",
-                textposition='auto',marker_color='LightBlue', marker_line_color='rgb(8,48,107)'
-            )])
+    # top_deal_fig = go.Figure(data=[go.Bar(
+    #             x=top_deal_df["mt_preleads_code"], y=top_deal_df["email_sales"],
+    #             text=top_deal_df["mt_preleads_code"], orientation="h",
+    #             textposition='auto',marker_color='LightBlue', marker_line_color='rgb(8,48,107)'
+    #         )])
 
-    top_deal_fig.update_traces(texttemplate='%{text:,}')
-    top_deal_fig.update_layout({
-    'plot_bgcolor': 'rgba(0, 0, 0, 0)',
-    'paper_bgcolor': 'rgba(0, 0, 0, 0)',
-    })
-    col_top1.markdown(f"__Best {st.session_state.top_performer} Performers in Deal__")
-    col_top1.plotly_chart(top_deal_fig, use_container_width=True)
+    # top_deal_fig.update_traces(texttemplate='%{text:,}')
+    # top_deal_fig.update_layout({
+    # 'plot_bgcolor': 'rgba(0, 0, 0, 0)',
+    # 'paper_bgcolor': 'rgba(0, 0, 0, 0)',
+    # })
+    # col_top1.markdown(f"__Best {st.session_state.top_performer} Performers in Deal__")
+    # col_top1.plotly_chart(top_deal_fig, use_container_width=True)
 
 
 
-    ##### PAID DEAL
-    def get_top_paid():
-        dataframe = df_melesat_performer.loc[df_melesat_performer["deal"] == "deal"].copy()
-        dataframe = dataframe.tail(st.session_state.top_performer)
+    # ##### PAID DEAL
+    # def get_top_paid():
+    #     dataframe = df_melesat_performer.loc[df_melesat_performer["deal"] == "deal"].copy()
+    #     dataframe = dataframe.tail(st.session_state.top_performer)
 
-        return dataframe
+    #     return dataframe
 
-    top_paid_df = get_top_paid()
+    # top_paid_df = get_top_paid()
 
-    top_paid_fig = go.Figure(data=[go.Bar(
-                x=top_paid_df["mt_preleads_code"], y=top_paid_df["email_sales"],
-                text=top_paid_df["mt_preleads_code"], orientation="h",
-                textposition='auto',marker_color='darkorange', marker_line_color='#000000'
-            )])
+    # top_paid_fig = go.Figure(data=[go.Bar(
+    #             x=top_paid_df["mt_preleads_code"], y=top_paid_df["email_sales"],
+    #             text=top_paid_df["mt_preleads_code"], orientation="h",
+    #             textposition='auto',marker_color='darkorange', marker_line_color='#000000'
+    #         )])
 
-    top_paid_fig.update_traces(texttemplate='%{text:,}')
-    top_paid_fig.update_layout({
-    'plot_bgcolor': 'rgba(0, 0, 0, 0)',
-    'paper_bgcolor': 'rgba(0, 0, 0, 0)',
-    })
+    # top_paid_fig.update_traces(texttemplate='%{text:,}')
+    # top_paid_fig.update_layout({
+    # 'plot_bgcolor': 'rgba(0, 0, 0, 0)',
+    # 'paper_bgcolor': 'rgba(0, 0, 0, 0)',
+    # })
 
-    col_top2.markdown(f"__Best {st.session_state.top_performer} Performers in Paid Deal__")
-    col_top2.plotly_chart(top_paid_fig, use_container_width=True)
+    # col_top2.markdown(f"__Best {st.session_state.top_performer} Performers in Paid Deal__")
+    # col_top2.plotly_chart(top_paid_fig, use_container_width=True)
 
 
 
-    ############################### CAMPAIGN PER TELESALES
-    st.subheader("Assigned Campaign Per Telesales")
-    st.markdown("__Retouched Data__")
-    campaign_per_tele = df_deal_melesat_retouched.groupby(["status_code", "email_sales", "reassigned_leads"])["mt_preleads_code"].count().to_frame().reset_index()
+    # ############################### CAMPAIGN PER TELESALES
+    # st.subheader("Assigned Campaign Per Telesales")
+    # st.markdown("__Retouched Data__")
+    # campaign_per_tele = df_deal_melesat_retouched.groupby(["status_code", "email_sales", "reassigned_leads"])["mt_preleads_code"].count().to_frame().reset_index()
 
 
-    fig_telesales = px.sunburst(campaign_per_tele, path=["status_code", "email_sales", "reassigned_leads"],
-                        title="Telesales By Number of Assigned", color_discrete_sequence=px.colors.qualitative.Pastel2,
-                    values='mt_preleads_code', width=500, height=500)
-    fig_telesales.update_traces(textinfo="label+percent parent")
-    st.plotly_chart(fig_telesales, use_container_width=True)
+    # fig_telesales = px.sunburst(campaign_per_tele, path=["status_code", "email_sales", "reassigned_leads"],
+    #                     title="Telesales By Number of Assigned", color_discrete_sequence=px.colors.qualitative.Pastel2,
+    #                 values='mt_preleads_code', width=500, height=500)
+    # fig_telesales.update_traces(textinfo="label+percent parent")
+    # st.plotly_chart(fig_telesales, use_container_width=True)
 
-    email_sales_df = df_deal_melesat.groupby(["email_sales", "reassigned_leads"])["mt_preleads_code"].count().to_frame().reset_index()
+    # email_sales_df = df_deal_melesat.groupby(["email_sales", "reassigned_leads"])["mt_preleads_code"].count().to_frame().reset_index()
 
-    st.dataframe(email_sales_df)
+    # st.dataframe(email_sales_df)
 
-    buffer = io.BytesIO()
-    with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
-        # Write excel with single worksheet
-        email_sales_df.to_excel(writer, index=False)
-        # Close the Pandas Excel writer and output the Excel file to the buffer
-        writer.save()
+    # buffer = io.BytesIO()
+    # with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+    #     # Write excel with single worksheet
+    #     email_sales_df.to_excel(writer, index=False)
+    #     # Close the Pandas Excel writer and output the Excel file to the buffer
+    #     writer.save()
 
-        # assign file to download button
-        st.download_button(
-            label="Download Data in Excel",
-            data=buffer,
-            file_name=f"telesales_{datetime.datetime.now().strftime('%Y-%m-%d')}.xlsx",
-            mime="application/vnd.ms-excel"
-        )
+    #     # assign file to download button
+    #     st.download_button(
+    #         label="Download Data in Excel",
+    #         data=buffer,
+    #         file_name=f"telesales_{datetime.datetime.now().strftime('%Y-%m-%d')}.xlsx",
+    #         mime="application/vnd.ms-excel"
+    #     )
 
-    ############################ REASSIGNED LEADS PER TELESALES ###########################
-    st.subheader("Assigned Campaign Per Telesales")
-    st.markdown("__Retouched Data__")
-    reassigned_leads_per_tele = df_deal_melesat_retouched.groupby(["reassigned_leads", "email_sales"])["mt_preleads_code"].count().to_frame().reset_index()
+    # ############################ REASSIGNED LEADS PER TELESALES ###########################
+    # st.subheader("Assigned Campaign Per Telesales")
+    # st.markdown("__Retouched Data__")
+    # reassigned_leads_per_tele = df_deal_melesat_retouched.groupby(["reassigned_leads", "email_sales"])["mt_preleads_code"].count().to_frame().reset_index()
 
-    fig_reassigned_leads = px.sunburst(campaign_per_tele, path=["reassigned_leads", "email_sales"],
-                        title="Number of Reassigned Leads Per Telesales", color_discrete_sequence=px.colors.qualitative.Pastel2,
-                    values='mt_preleads_code', width=500, height=500)
-    fig_reassigned_leads.update_traces(textinfo="label+percent parent")
-    st.plotly_chart(fig_reassigned_leads, use_container_width=True)
+    # fig_reassigned_leads = px.sunburst(campaign_per_tele, path=["reassigned_leads", "email_sales"],
+    #                     title="Number of Reassigned Leads Per Telesales", color_discrete_sequence=px.colors.qualitative.Pastel2,
+    #                 values='mt_preleads_code', width=500, height=500)
+    # fig_reassigned_leads.update_traces(textinfo="label+percent parent")
+    # st.plotly_chart(fig_reassigned_leads, use_container_width=True)
 
 
-    ##################################### HCW BY REASSIGNED CAMPAIGN
-    st.subheader("HCW by Reassigned Campaign")
-    st.markdown("__Retouched Data__")
-    hcw_df = df_deal_melesat_retouched.groupby(["leads_potensial_category", "reassigned_leads"])["mt_preleads_code"].count().to_frame().reset_index()
+    # ##################################### HCW BY REASSIGNED CAMPAIGN
+    # st.subheader("HCW by Reassigned Campaign")
+    # st.markdown("__Retouched Data__")
+    # hcw_df = df_deal_melesat_retouched.groupby(["leads_potensial_category", "reassigned_leads"])["mt_preleads_code"].count().to_frame().reset_index()
 
-    fig_hcw = px.sunburst(hcw_df, path=["leads_potensial_category", "reassigned_leads"],
-                        title="HCW by Reassigned Campaign", color_discrete_sequence=px.colors.qualitative.Pastel2,
-                    values='mt_preleads_code', width=500, height=500)
-    fig_hcw.update_traces(textinfo="label+percent parent")
-    st.plotly_chart(fig_hcw, use_container_width=True)
+    # fig_hcw = px.sunburst(hcw_df, path=["leads_potensial_category", "reassigned_leads"],
+    #                     title="HCW by Reassigned Campaign", color_discrete_sequence=px.colors.qualitative.Pastel2,
+    #                 values='mt_preleads_code', width=500, height=500)
+    # fig_hcw.update_traces(textinfo="label+percent parent")
+    # st.plotly_chart(fig_hcw, use_container_width=True)
 
 
 
@@ -580,142 +580,142 @@ if st.session_state["authentication_status"]:
 
 
 
-    ####################### NON REASSIGN (REGULAR) DATAFRAME
-    st.markdown("## Daily Basis")
-    st.subheader("Ongoing Daily Deals (Non Reassign)")
+    # ####################### NON REASSIGN (REGULAR) DATAFRAME
+    # st.markdown("## Daily Basis")
+    # st.subheader("Ongoing Daily Deals (Non Reassign)")
 
 
 
-    ########################### DAILY LINE CHART
+    # ########################### DAILY LINE CHART
 
-    ###### DATAFRAME
-    def get_deal_regular():
-        dataframe = df.loc[~df["mt_preleads_code"].isin(df_melesat["mt_preleads_code"].tolist())].copy()
+    # ###### DATAFRAME
+    # def get_deal_regular():
+    #     dataframe = df.loc[~df["mt_preleads_code"].isin(df_melesat["mt_preleads_code"].tolist())].copy()
 
-        return dataframe
+    #     return dataframe
 
 
-    df_deal_regular = get_deal_regular()
+    # df_deal_regular = get_deal_regular()
 
-    st.dataframe(df_deal_regular.head(10))
+    # st.dataframe(df_deal_regular.head(10))
 
-    df_deal_regular_grouped = df_deal_regular.groupby([pd.Grouper(key="last_update", freq="D"), "deal"])["mt_preleads_code"].count().to_frame().reset_index()
+    # df_deal_regular_grouped = df_deal_regular.groupby([pd.Grouper(key="last_update", freq="D"), "deal"])["mt_preleads_code"].count().to_frame().reset_index()
 
 
-    # create filter to select dataframe (deal)
-    colreg1, colreg2 = st.columns(2)
+    # # create filter to select dataframe (deal)
+    # colreg1, colreg2 = st.columns(2)
 
-    # multiselect
-    select_deal_regular = colreg1.multiselect("Type of Deals", options=["deal", "pipeline", "no deal"], default=["deal", "pipeline"], key="regular")
+    # # multiselect
+    # select_deal_regular = colreg1.multiselect("Type of Deals", options=["deal", "pipeline", "no deal"], default=["deal", "pipeline"], key="regular")
 
-    # select Month
-    month_name = colreg2.selectbox("Select Month", options=["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], index=6)
+    # # select Month
+    # month_name = colreg2.selectbox("Select Month", options=["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], index=6)
 
 
-    # initiate session_state
-    if "select_deal_type_regular" not in st.session_state:
-        st.session_state["select_deal_type_regular"] = select_deal_regular
+    # # initiate session_state
+    # if "select_deal_type_regular" not in st.session_state:
+    #     st.session_state["select_deal_type_regular"] = select_deal_regular
 
-    if "select_month_name" not in st.session_state:
-        st.session_state["select_month_name"] = month_name
+    # if "select_month_name" not in st.session_state:
+    #     st.session_state["select_month_name"] = month_name
 
-    change_regular  = st.button("Change the filters")
+    # change_regular  = st.button("Change the filters")
 
-    if change_regular:
-        st.session_state["select_deal_type_regular"] = select_deal_regular
-        st.session_state["select_month_name"] = month_name
+    # if change_regular:
+    #     st.session_state["select_deal_type_regular"] = select_deal_regular
+    #     st.session_state["select_month_name"] = month_name
 
-    # filtered dataframe based on multiselect
-    def get_regular_select():
-        dataframe = df_deal_regular_grouped.loc[(df_deal_regular_grouped["deal"].isin(select_deal_regular)) & (df_deal_regular_grouped["last_update"].dt.month_name() == st.session_state.select_month_name)].copy()
+    # # filtered dataframe based on multiselect
+    # def get_regular_select():
+    #     dataframe = df_deal_regular_grouped.loc[(df_deal_regular_grouped["deal"].isin(select_deal_regular)) & (df_deal_regular_grouped["last_update"].dt.month_name() == st.session_state.select_month_name)].copy()
 
-        return dataframe
+    #     return dataframe
 
-    df_deal_regular_grouped_filtered = get_regular_select()
+    # df_deal_regular_grouped_filtered = get_regular_select()
 
-    ####### CHART
-    daily_regular_fig = px.line (df_deal_regular_grouped_filtered, x="last_update",
-        title=f"Daily Number of {st.session_state.select_deal_type_regular}", y="mt_preleads_code", text="mt_preleads_code", color="deal", color_discrete_map={
-                    "pipeline": "#006400",
-                    "deal": "gold",
-                    "leads": "#6495ED"
-                })
-    daily_regular_fig.update_traces(textposition="bottom right", texttemplate='%{text:,}')
-    daily_regular_fig.update_layout({
-    'plot_bgcolor': 'rgba(0, 0, 0, 0)',
-    'paper_bgcolor': 'rgba(0, 0, 0, 0)',
-    })
-    st.plotly_chart(daily_regular_fig, use_container_width=True)
+    # ####### CHART
+    # daily_regular_fig = px.line (df_deal_regular_grouped_filtered, x="last_update",
+    #     title=f"Daily Number of {st.session_state.select_deal_type_regular}", y="mt_preleads_code", text="mt_preleads_code", color="deal", color_discrete_map={
+    #                 "pipeline": "#006400",
+    #                 "deal": "gold",
+    #                 "leads": "#6495ED"
+    #             })
+    # daily_regular_fig.update_traces(textposition="bottom right", texttemplate='%{text:,}')
+    # daily_regular_fig.update_layout({
+    # 'plot_bgcolor': 'rgba(0, 0, 0, 0)',
+    # 'paper_bgcolor': 'rgba(0, 0, 0, 0)',
+    # })
+    # st.plotly_chart(daily_regular_fig, use_container_width=True)
 
-    ##################################### METRIC CARDS
-    def get_available_data_regular():
-        dataframe = df_deal_regular.loc[df_deal_regular["last_update"].dt.month_name() == st.session_state.select_month_name].copy()
+    # ##################################### METRIC CARDS
+    # def get_available_data_regular():
+    #     dataframe = df_deal_regular.loc[df_deal_regular["last_update"].dt.month_name() == st.session_state.select_month_name].copy()
 
-        return dataframe
+    #     return dataframe
 
-    total_available_regular = len(get_available_data_regular())
+    # total_available_regular = len(get_available_data_regular())
 
-    st.markdown(f"Total Available Data (Non Reassign): __{total_available_regular}__")
+    # st.markdown(f"Total Available Data (Non Reassign): __{total_available_regular}__")
 
-    # create column
-    col_reg1, col_reg2, col_reg3 = st.columns(3)
+    # # create column
+    # col_reg1, col_reg2, col_reg3 = st.columns(3)
 
-    ################## VALUE METRICES
+    # ################## VALUE METRICES
 
-    # card 1 (Paid deal)
-    deal_grouped_regular = df_deal_regular_grouped_filtered.loc[df_deal_regular_grouped_filtered["deal"] == "pipeline"].groupby("deal")["mt_preleads_code"].sum()
-    total_deal_regular = deal_grouped_regular.values[0]
-    col_reg1.metric("Total Pipeline", total_deal_regular)
+    # # card 1 (Paid deal)
+    # deal_grouped_regular = df_deal_regular_grouped_filtered.loc[df_deal_regular_grouped_filtered["deal"] == "pipeline"].groupby("deal")["mt_preleads_code"].sum()
+    # total_deal_regular = deal_grouped_regular.values[0]
+    # col_reg1.metric("Total Pipeline", total_deal_regular)
 
-    # card 2 (Paid deal)
-    paid_deal_grouped_regular = df_deal_regular_grouped_filtered.loc[df_deal_regular_grouped_filtered["deal"] == "deal"].groupby("deal")["mt_preleads_code"].sum()
+    # # card 2 (Paid deal)
+    # paid_deal_grouped_regular = df_deal_regular_grouped_filtered.loc[df_deal_regular_grouped_filtered["deal"] == "deal"].groupby("deal")["mt_preleads_code"].sum()
 
-    def get_paid_deal_regular():
-        if len(paid_deal_grouped_regular) > 0:
-            return paid_deal_grouped_regular.values[0]
-        else:
-            return 0
+    # def get_paid_deal_regular():
+    #     if len(paid_deal_grouped_regular) > 0:
+    #         return paid_deal_grouped_regular.values[0]
+    #     else:
+    #         return 0
 
-    total_paid_deal_regular = get_paid_deal_regular()
-    col_reg2.metric("Total Deal", total_paid_deal_regular)
+    # total_paid_deal_regular = get_paid_deal_regular()
+    # col_reg2.metric("Total Deal", total_paid_deal_regular)
 
-    # card 3 (All Paid + deal)
-    total_all_regular = total_deal_regular + total_paid_deal_regular
-    col_reg3.metric("Total Pipeline + Deal", total_all_regular)
+    # # card 3 (All Paid + deal)
+    # total_all_regular = total_deal_regular + total_paid_deal_regular
+    # col_reg3.metric("Total Pipeline + Deal", total_all_regular)
 
 
-    ################## PERCENTAGE METRICES
-    # card 1 (deal conversion rate)
-    total_deal_conversion_regular = total_deal_regular/total_available_regular
-    col_reg1.metric("Pipeline Conversion Rate", value=f"{total_deal_conversion_regular:.2%}")
+    # ################## PERCENTAGE METRICES
+    # # card 1 (deal conversion rate)
+    # total_deal_conversion_regular = total_deal_regular/total_available_regular
+    # col_reg1.metric("Pipeline Conversion Rate", value=f"{total_deal_conversion_regular:.2%}")
 
-    # card 2 (paid deal conversion rate)
-    paid_deal_conversion_regular = total_paid_deal_regular/total_available_regular
-    col_reg2.metric("Deal Conversion Rate", value=f"{paid_deal_conversion_regular:.2%}")
+    # # card 2 (paid deal conversion rate)
+    # paid_deal_conversion_regular = total_paid_deal_regular/total_available_regular
+    # col_reg2.metric("Deal Conversion Rate", value=f"{paid_deal_conversion_regular:.2%}")
 
-    # card 3 (total deal conversion rate)
-    total_all_conversion_regular = total_all/total_available_regular
-    col_reg3.metric("Pipeline + Deal Conversion Rate", value=f"{total_all_conversion_regular:.2%}")
+    # # card 3 (total deal conversion rate)
+    # total_all_conversion_regular = total_all/total_available_regular
+    # col_reg3.metric("Pipeline + Deal Conversion Rate", value=f"{total_all_conversion_regular:.2%}")
 
 
-    ############## SUN BURST DEAL, SOUCRE ENTRY, and STATUS
-    st.subheader("Number of Deals Based On Status and Lead Sources")
+    # ############## SUN BURST DEAL, SOUCRE ENTRY, and STATUS
+    # st.subheader("Number of Deals Based On Status and Lead Sources")
 
-    ###### DATAFRAME
-    def get_regular_status():
-        dataframe = df_deal_regular.loc[(df_deal_regular["deal"].isin(select_deal_regular)) & (df_deal_regular["last_update"].dt.month_name() == st.session_state.select_month_name)].copy()
+    # ###### DATAFRAME
+    # def get_regular_status():
+    #     dataframe = df_deal_regular.loc[(df_deal_regular["deal"].isin(select_deal_regular)) & (df_deal_regular["last_update"].dt.month_name() == st.session_state.select_month_name)].copy()
         
-        return dataframe
+    #     return dataframe
 
-    df_regular_status = get_regular_status()
+    # df_regular_status = get_regular_status()
 
-    df_regular_status_grouped = df_regular_status.groupby(["deal", "m_sourceentry_code", "m_status_code"])["mt_preleads_code"].count().to_frame().reset_index()
+    # df_regular_status_grouped = df_regular_status.groupby(["deal", "m_sourceentry_code", "m_status_code"])["mt_preleads_code"].count().to_frame().reset_index()
 
-    fig_source_regular = px.sunburst(df_regular_status_grouped, path=["deal", "m_sourceentry_code", "m_status_code"],
-                        title=f"Number of Deals of {st.session_state.select_month_name}", color_discrete_sequence=px.colors.qualitative.Pastel2,
-                    values='mt_preleads_code', width=500, height=500)
-    fig_source_regular.update_traces(textinfo="label+percent parent")
-    st.plotly_chart(fig_source_regular, use_container_width=True)
+    # fig_source_regular = px.sunburst(df_regular_status_grouped, path=["deal", "m_sourceentry_code", "m_status_code"],
+    #                     title=f"Number of Deals of {st.session_state.select_month_name}", color_discrete_sequence=px.colors.qualitative.Pastel2,
+    #                 values='mt_preleads_code', width=500, height=500)
+    # fig_source_regular.update_traces(textinfo="label+percent parent")
+    # st.plotly_chart(fig_source_regular, use_container_width=True)
 
 
     ############################## END OF CONTENT
