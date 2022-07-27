@@ -4,6 +4,16 @@ import streamlit_authenticator as stauth
 import yaml
 from streamlit_authenticator import Authenticate, SafeLoader
 
+
+
+# favicon image
+im = Image.open("favicon.ico")
+
+st.set_page_config(
+    page_title="WhatsApp Blast Optimization",
+    page_icon=im,
+)
+
 hashed_passwords = stauth.Hasher(['123', '456']).generate()
 
 #st.write(hashed_passwords)
