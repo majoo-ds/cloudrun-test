@@ -10,7 +10,7 @@ from streamlit_authenticator import Authenticate, SafeLoader
 im = Image.open("favicon.ico")
 
 st.set_page_config(
-    page_title="WhatsApp Blast Optimization",
+    page_title="Leads Management and Optimization",
     page_icon=im,
 )
 
@@ -47,6 +47,10 @@ if authentication_status:
         We don't limit ourselves to just use below analytics, we might find others in the near future. 
         - __Deals Monitoring__
         Showing daily number of deal or even paid deal based on CRM database updated regularly
+        - __Leads Optimization__
+        How to increase the leads performance (conversion) by optimizing the flows
+        - __Leads Performance__
+        Measuring the leads performance through specific metrics
         
     """
     )

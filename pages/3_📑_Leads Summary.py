@@ -1,4 +1,5 @@
 import math
+from turtle import width
 import streamlit as st
 from Home import name, authentication_status, username
 from streamlit_authenticator import Authenticate, SafeLoader
@@ -262,10 +263,11 @@ if st.session_state["authentication_status"]:
     groupby_status_first_touch_df = first_touch_df.groupby("status_code")["mt_preleads_code"].count().to_frame().reset_index()
     color_pie = ['gold', 'mediumturquoise', 'darkorange', 'lightgreen']
 
+
     # DONUT CHART (ALTERNATIVE OF PIE CHART)
-    donut_status_fig = go.Figure(data=[go.Pie(labels=groupby_status_first_touch_df["status_code"], values=groupby_status_first_touch_df["mt_preleads_code"], hole=.35)])
+    donut_status_fig = go.Figure(data=[go.Pie(labels=groupby_status_first_touch_df["status_code"], values=groupby_status_first_touch_df["mt_preleads_code"], hole=.35, pull=[0, 0.5, 0, 0.3])])
     donut_status_fig.update_traces(textposition='inside', textinfo='percent+label', textfont_size=12, marker=dict(colors=color_pie, line=dict(color='#000000', width=1.25)))
-    donut_status_fig.update_layout(title_text=f"Processed Leads of {st.session_state.month_status} {st.session_state.year_status}")
+    donut_status_fig.update_layout(title_text=f"Processed Leads of {st.session_state.month_status} {st.session_state.year_status}", width=500, height=500)
     st.plotly_chart(donut_status_fig, use_container_width=True)
 
 
@@ -287,7 +289,22 @@ if st.session_state["authentication_status"]:
     monthly_first_status_fig.update_layout({
     'plot_bgcolor': 'rgba(0, 0, 0, 0)',
     'paper_bgcolor': 'rgba(0, 0, 0, 0)',
-    })
+    }, yaxis=dict(
+        showgrid=False,
+        zeroline=False,
+        showline=False,
+        showticklabels=False,
+    ),
+        legend=dict(
+        yanchor="top",
+        y=0.99,
+        xanchor="left",
+        x=0.01
+    ), width=1000)
+    monthly_first_status_fig.update_xaxes(
+        title_text = "Month",
+        title_standoff = 25)
+    monthly_first_status_fig.update_yaxes(visible=False, showticklabels=False)
     st.plotly_chart(monthly_first_status_fig, use_container_width=True)
 
 
