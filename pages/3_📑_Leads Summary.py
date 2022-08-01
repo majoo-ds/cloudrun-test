@@ -231,9 +231,14 @@ if st.session_state["authentication_status"]:
     st.subheader("First Touch of Generated Leads")
     st.markdown("Based on __Submit Date__")
 
+    # some defined list
+    month_list = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+    year_list = ["2022", "2023", "2024", "2025"]
+
+
     status1, status2, status3 = st.columns([3,3,2])
-    month_group = status1.selectbox("Select Month", options=["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], index=6)
-    year_group = status2.selectbox("Select Year", options=["2022", "2023", "2024", "2025"], index=0)
+    month_group = status1.selectbox("Select Month", options=month_list, index=month_list.index(datetime.datetime.now().strftime("%B")))
+    year_group = status2.selectbox("Select Year", options=year_list, index=year_list.index(datetime.datetime.now().strftime("%Y")))
 
     # SESSION STATE
     if "month_status" not in st.session_state:
@@ -328,9 +333,9 @@ if st.session_state["authentication_status"]:
     col_tar1, col_tar2, col_tar3, col_tar4 = st.columns(4)
 
     # month
-    target_month = col_tar1.selectbox("Select Month", options=["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], index=6, key="target")
+    target_month = col_tar1.selectbox("Select Month", options=month_list, index=month_list.index(datetime.datetime.now().strftime("%B")), key="target")
     # year
-    target_year = col_tar2.selectbox("Select Year", options=["2022", "2023", "2024", "2025"], index=0, key="target")
+    target_year = col_tar2.selectbox("Select Year", options=year_list, index=year_list.index(datetime.datetime.now().strftime("%Y")), key="target")
     # type
     target_type = col_tar3.selectbox("Select Type", options=["total leads", "hw"], index=1)
     # method
