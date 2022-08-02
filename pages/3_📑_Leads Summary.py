@@ -76,6 +76,24 @@ if st.session_state["authentication_status"]:
     product_dict = dict(zip(df_product.mt_leads_code, df_product.product_name))
 
 
+    ####################### PRODUCT DATAFRAME
+    url_csv = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQBWaWkI2Omn54cwkule7ykZZQRzH6pdaTVRGFrjPwlAdR51vilty5uCQkQEv27TGNNm7VH_u_cpPe4/pub?output=csv"
+    @st.experimental_memo(ttl=1*60*60)
+    def get_campaign_1(path):
+        df = pd.read_csv(path)
+       
+        
+        return df
+
+    campaign_df = get_campaign_1(url_csv)
+
+    # campaign_tag_dict = {"campaign_id": "campaign_tag"}
+    campaign_tag_dict = dict(zip(campaign_df.campaign_id, campaign_df.campaign_tag))
+
+    # main_campaign_dict = {"campaign_id": "main_campaign}
+    main_campaign_dict = dict(zip(campaign_df.campaign_id, campaign_df.main_campaign))
+
+    ####################### MAIN DATAFRAME
     @st.experimental_memo(ttl=1*60*60)
     def fetch_db_crm_1():
             dates = ["submit_at", "assign_at", "approved_paid_at", "created_payment","last_update"]
@@ -166,6 +184,12 @@ if st.session_state["authentication_status"]:
             # product_name
             dataframe["product_name"] = dataframe["mt_leads_code"].map(product_dict)
 
+            # campaign_tag
+            dataframe["campaign_tag"] = dataframe["campaign_name"].map(campaign_tag_dict)
+
+            # main_campaign
+            dataframe["main_campaign"] = dataframe["campaign_name"].map(main_campaign_dict)
+
             # product deal category (regular or CB)
             dataframe["type_of_product"] = dataframe.apply(lambda row:
                                                                    "CB" if "CB" in str(row["product_name"])
@@ -184,7 +208,7 @@ if st.session_state["authentication_status"]:
     grid_return = AgGrid(df_all.head(50), editable=True)
     new_df = grid_return["data"]
 
-    ################################ TOTAL LEADS GENERATED #########################################
+    ################################ TOTAL LEADS GENERATED MONTHLY #########################################
     # section title
     st.subheader("Total Generated Leads (All Status)")
     st.markdown("Based on __Submit Date__")
@@ -210,7 +234,7 @@ if st.session_state["authentication_status"]:
         st.session_state["status_touch"] = status_list
 
     # graph title
-    st.markdown(f"Monthly Total Leads ({datetime.datetime.now().year})")
+    st.markdown(f"__Monthly Total Leads ({datetime.datetime.now().year})__")
     first_touch_total = df_all.loc[(df_all["submit_at"].dt.year == int(datetime.datetime.now().year)) & (df_all["status_code"].isin(st.session_state.status_touch))].groupby(pd.Grouper(key="submit_at", freq="MS"))["mt_preleads_code"].count().to_frame().reset_index()
 
     total_leads_monthly_fig = go.Figure(data=[go.Bar(
@@ -223,9 +247,57 @@ if st.session_state["authentication_status"]:
     total_leads_monthly_fig.update_layout({
     'plot_bgcolor': 'rgba(0, 0, 0, 0)',
     'paper_bgcolor': 'rgba(0, 0, 0, 0)',
-    })
+    }, yaxis=dict(
+        showgrid=False,
+        zeroline=False,
+        showline=False,
+        showticklabels=False,
+    ), xaxis=dict(
+        showline=True,
+        showgrid=False,
+        showticklabels=True,
+        linecolor='rgb(204, 204, 204)',
+        linewidth=2,
+        ticks='outside',
+        tickfont=dict(
+            family='Arial',
+            size=12,
+            color='rgb(82, 82, 82)',
+        ))
+    )
     st.plotly_chart(total_leads_monthly_fig, use_container_width=True)
+
+    ################################ TOTAL LEADS GENERATED YEARLY #########################################
+    # graph title
+    st.markdown(f"__Year-to-date Total Leads ({datetime.datetime.now().year})__")
+    ytd_target = df_all.loc[(df_all["submit_at"].dt.year == int(datetime.datetime.now().year))].groupby(pd.Grouper(key="submit_at", freq="Y"))["mt_preleads_code"].count().to_frame().reset_index()
+    # st.write(ytd_target.iat[0,1])
     
+
+    # dataframe for target per year
+    year_range = pd.date_range('2022-01-01', periods=5, freq="A")
+    target_leads_per_year = [145000, 150000,180000, 200000, 250000] # 2022, 2023, 2024, 2025
+    df_yearly_target = pd.DataFrame({'year': year_range, 'target': target_leads_per_year})
+    # filtered current year
+    df_yearly_target_current = df_yearly_target.loc[df_yearly_target["year"].dt.year == int(datetime.datetime.now().year)].copy()
+    # st.write(df_yearly_target_current.iat[0,1])
+
+    fig_yearly_leads_target = go.Figure(go.Indicator(
+        mode = "gauge+number+delta",
+        value = ytd_target.iat[0,1],
+        delta = {'reference': df_yearly_target_current.iat[0,1]},
+        title = {'text': "Target Leads"},
+        domain = {'x': [0, 1], 'y': [0, 1]},
+        gauge = {'axis': {'range': [None, 200000]},
+             'steps' : [
+                 {'range': [0, 100000], 'color': "lightgray"},
+                 {'range': [100000, 200000], 'color': "gray"}],
+             'threshold' : {'line': {'color': "red", 'width': 4}, 'thickness': 0.75, 'value': df_yearly_target_current.iat[0,1]}}))
+    
+
+    st.plotly_chart(fig_yearly_leads_target, use_container_width=True)
+
+
     ################################ BACKLOG JUNKED ASSIGNED UNASSIGNED #########################################
     # section title
     st.subheader("First Touch of Generated Leads")
@@ -307,7 +379,15 @@ if st.session_state["authentication_status"]:
     ), width=1000)
     monthly_first_status_fig.update_xaxes(
         title_text = "Month",
-        title_standoff = 25)
+        title_standoff = 25,
+        linecolor='rgb(204, 204, 204)',
+        linewidth=2,
+        ticks='outside',
+        tickfont=dict(
+            family='Arial',
+            size=12,
+            color='rgb(82, 82, 82)',
+        ))
     monthly_first_status_fig.update_yaxes(visible=False, showticklabels=False)
     st.plotly_chart(monthly_first_status_fig, use_container_width=True)
 
@@ -416,12 +496,13 @@ if st.session_state["authentication_status"]:
     def round_up_to_nearest_1000(num):
         return math.ceil(num / 1000) * 1000
 
+    
     # 50% of realization
-    first_range = 0.5*df_target_filtered.iat[0,2]
+    first_range = 0.5*float(df_target_filtered.iat[0,2])
     # 90% of realization
-    num_threshold = 0.9*df_target_filtered.iat[0,2]
+    num_threshold = 0.9*float(df_target_filtered.iat[0,2])
     # 75% of realization
-    second_range = 0.75*df_target_filtered.iat[0,2]
+    second_range = 0.75*float(df_target_filtered.iat[0,2])
 
 
     # color legend
@@ -440,27 +521,27 @@ if st.session_state["authentication_status"]:
 
     with col_color4:
         color4 = st.color_picker("", '#000000', key=4)
-        st.markdown(f"100% of target: __{df_target_filtered.iat[0,2]:,}__")
+        st.markdown(f"100% of target: __{int(df_target_filtered.iat[0,2]):,}__")
 
     with col_color5:
         color5 = st.color_picker("", '#778899', key=5)
-        st.markdown(f"Actual numbers: __{realization_num:,}__")
+        st.markdown(f"Actual of {realization_num/df_target_filtered.iat[0,2]:.2%}: __{realization_num:,}__")
 
     # bullet chart
     bullet_target_fig = go.Figure()
 
     bullet_target_fig.add_trace(go.Indicator(
         mode = "number+gauge+delta", value = realization_num,
-        delta = {'reference': df_target_filtered.iat[0,2]},
+        delta = {'reference': int(df_target_filtered.iat[0,2])},
         domain = {'x': [0.25, 1], 'y': [0.7, 0.9]},
         title = {'text': f"{st.session_state.year_type.upper()}"},
         gauge = {
             'shape': "bullet",
-            'axis': {'range': [None, round_up_to_nearest_1000(df_target_filtered.iat[0,2])]},
+            'axis': {'range': [None, round_up_to_nearest_1000(float(df_target_filtered.iat[0,2]))]},
             'threshold': {
                 'line': {'color': color4, 'width': 2.5},
                 'thickness': 0.75,
-                'value': df_target_filtered.iat[0,2]},
+                'value': int(df_target_filtered.iat[0,2])},
             'steps': [
                 {'range': [0, first_range], 'color': color1},
                 {'range': [first_range, second_range], 'color': color2},
