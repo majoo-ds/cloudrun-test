@@ -1,4 +1,5 @@
 import math
+from os import stat
 import streamlit as st
 from Home import name, authentication_status, username
 from streamlit_authenticator import Authenticate, SafeLoader
@@ -549,6 +550,71 @@ if st.session_state["authentication_status"]:
             'bar': {'color': color5}}))
     bullet_target_fig.update_layout(height = 300 , margin = {'t':0, 'b':0, 'l':0})        
     st.plotly_chart(bullet_target_fig, use_container_width=True)
+
+
+    ################## LEADS STATUS AND M STATUS CODE #################################
+    st.markdown("__Leads Category and Status__")
+    df_leads_status_all_year = df_all.loc[
+                                    (df_all["submit_at"].dt.year == int(st.session_state.year_target))&
+                                    (df_all["leads_potensial_category"] != "Null")].copy()
+
+    df_leads_status_per_month = df_all.loc[(df_all["submit_at"].dt.month_name() == st.session_state.month_target) &
+                                    (df_all["submit_at"].dt.year == int(st.session_state.year_target)) & 
+                                    (df_all["leads_potensial_category"] != "Null")].copy()
+
+
+    ########## all years
+    df_grouped_all_year = df_leads_status_all_year.groupby(["leads_potensial_category", "m_status_code"])["mt_preleads_code"].count().to_frame().reset_index()
+    
+
+    # DONUT CHART (ALTERNATIVE OF PIE CHART)
+    donut_status_all_year = go.Figure(data=[go.Pie(labels=df_grouped_all_year["leads_potensial_category"], values=df_grouped_all_year["mt_preleads_code"], hole=.35, pull=[0, 0, 0.3])])
+    donut_status_all_year.update_traces(textposition='inside', textinfo='percent+label', textfont_size=12, marker=dict(colors=color_pie, line=dict(color='#000000', width=1.25)))
+    donut_status_all_year.update_layout(title_text=f"Processed Leads Based on Category of {st.session_state.year_target}", width=500, height=500)
+    st.plotly_chart(donut_status_all_year, use_container_width=True)
+
+   # DONUT CHART (ALTERNATIVE OF PIE CHART)
+    donut_status_all_year_code = go.Figure(data=[go.Pie(labels=df_grouped_all_year["m_status_code"], values=df_grouped_all_year["mt_preleads_code"], hole=.35, pull=[0, 0, 0.3])])
+    donut_status_all_year_code.update_traces(textposition='inside', textinfo='percent+label', textfont_size=12, marker=dict(colors=color_pie, line=dict(color='#000000', width=1.25)))
+    donut_status_all_year_code.update_layout(title_text=f"Processed Leads Based on Status Code of {st.session_state.year_target}", width=500, height=500)
+    st.plotly_chart(donut_status_all_year_code, use_container_width=True)
+
+
+    # SUNBURST
+    sunburst_lead_status_code = px.sunburst(df_grouped_all_year, path=["leads_potensial_category", "m_status_code"],
+                        title="Leads Category by Status Code", color_discrete_sequence=px.colors.qualitative.Pastel2,
+                    values='mt_preleads_code', width=500, height=500)
+    sunburst_lead_status_code.update_traces(textinfo="label+percent parent")
+    st.plotly_chart(sunburst_lead_status_code, use_container_width=True)
+
+    ################## LEADS STATUS AND M STATUS CODE #################################
+    st.markdown("__Submit and Update Difference__")
+    
+    df_leads_status_all_year["today"] = pd.to_datetime("today")
+    df_leads_status_all_year["submit_update_difference"] = (df_leads_status_all_year["last_update"] - df_leads_status_all_year["submit_at"])//np.timedelta64(1,"D")
+    df_leads_status_all_year["submit_today_difference"] = (df_leads_status_all_year["today"]- df_leads_status_all_year["submit_at"])//np.timedelta64(1,"D")
+    
+    # count gropuby
+    df_difference = df_leads_status_all_year.loc[df_leads_status_all_year["m_status_code"] == "FOLLOW-UP"].groupby("submit_update_difference")["mt_preleads_code"].count().to_frame().reset_index()
+    df_difference['%_percent'] = df_difference['mt_preleads_code'] / df_difference['mt_preleads_code'].sum()
+    df_difference['%_percent'] = df_difference['%_percent'].apply(lambda x: "{0:.2f}%".format(x*100))
+
+    grid_return_diff = AgGrid(df_difference, editable=True, key="1")
+    new_df_diff = grid_return_diff["data"]
+
+    
+
+    st.markdown(f"__Submit and Today _({datetime.date.today()})_ Difference__")
+    # count gropuby
+    df_difference_today = df_leads_status_all_year.loc[df_leads_status_all_year["m_status_code"] == "FOLLOW-UP"].groupby("submit_today_difference")["mt_preleads_code"].count().to_frame().reset_index()
+    df_difference_today['%_percent'] = df_difference_today['mt_preleads_code'] / df_difference_today['mt_preleads_code'].sum()
+    df_difference_today['%_percent'] = df_difference_today['%_percent'].apply(lambda x: "{0:.2f}%".format(x*100))
+
+    grid_return_diff_today = AgGrid(df_difference_today, editable=True, key="2")
+    new_df_diff_today = grid_return_diff_today["data"]
+
+    
+
 
     ############################## CONTENT END HERE ############################################
 
