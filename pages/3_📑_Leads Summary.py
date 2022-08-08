@@ -559,10 +559,12 @@ if st.session_state["authentication_status"]:
 
 
     # selection widget
-    col_code1, col_code2 = st.columns(2)
+    col_code1, col_code2, col_code3, col_code4 = st.columns(4)
     # leads type category
-    leads_type = col_code1.selectbox("Select type of leads", options=["rating", "activity"], index=0, help="Categorizing leads based on rating value or num of activity")
-    min_of_activity = col_code2.selectbox("Min of Activities", options=range(0,11), index=0, help="Select minimum of total activities")
+    date_start = col_code1.date_input("Select start date", value=datetime.datetime.today().replace(day=1), help="Based on submit at")
+    date_end = col_code2.date_input("Select end date", value=datetime.datetime.today(), help="Based on submit at")
+    leads_type = col_code3.selectbox("Select type of leads", options=["rating", "activity"], index=0, help="Categorizing leads based on rating value or num of activity")
+    min_of_activity = col_code4.selectbox("Min of Activities", options=range(0,11), index=0, help="Select minimum of total activities")
 
     # SESSION STATE
     if "type_of_leads" not in st.session_state:
@@ -571,6 +573,12 @@ if st.session_state["authentication_status"]:
     if "num_activity" not in st.session_state:
         st.session_state["num_activity"] = min_of_activity
 
+    if "start_date" not in st.session_state:
+        st.session_state["start_date"] = date_start
+
+    if "end_date" not in st.session_state:
+        st.session_state["end_date"] = date_end   
+
     # button to update state
     change_params = st.button("Change filters", key="1")
 
@@ -578,12 +586,15 @@ if st.session_state["authentication_status"]:
     if change_params:
         st.session_state["type_of_leads"] = leads_type
         st.session_state["num_activity"] = min_of_activity
-
+        st.session_state["start_date"] = date_start
+        st.session_state["end_date"] = date_end
     
     df_leads_status_all_year = df_all.loc[
                                     (df_all["submit_at"].dt.year == int(st.session_state.year_target))&
                                     (df_all["leads_potensial_category"] != "Null")&
-                                    (df_all["total_activity"] >= st.session_state["num_activity"])].copy()
+                                    (df_all["total_activity"] >= st.session_state["num_activity"])&
+                                    (df_all["submit_at"].dt.date >= st.session_state["start_date"])&
+                                    (df_all["submit_at"].dt.date <= st.session_state["end_date"])].copy()
     
     # rating dataframe
     df_leads_by_rating = df_leads_status_all_year.groupby(["leads_potensial_category", "m_status_code"])["mt_preleads_code"].count().to_frame().reset_index()
@@ -614,6 +625,7 @@ if st.session_state["authentication_status"]:
     
     
     ####### LEADS CATEGORIES
+    st.markdown(f"Date range: __{st.session_state.start_date}__ to __{st.session_state.end_date}__")
 
     # DONUT CHART (ALTERNATIVE OF PIE CHART)
     donut_status_all_year = go.Figure(data=[go.Pie(labels=df_leads_type_category[df_leads_column], values=df_leads_type_category["mt_preleads_code"], hole=.35, pull=[0, 0,0.3])])
