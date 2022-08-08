@@ -1,5 +1,6 @@
 import math
 from os import stat
+from requests import options
 import streamlit as st
 from Home import name, authentication_status, username
 from streamlit_authenticator import Authenticate, SafeLoader
@@ -161,7 +162,8 @@ if st.session_state["authentication_status"]:
 
             # pipeline
             dataframe["pipeline_by_activity"] = dataframe.apply(lambda row:
-                                                            "Pipeline Hot" if row["m_status_code"] == "REQUEST-INVOICE" or row["leads_potensial_category"] == "Hot Leads"
+                                                            "Pipeline Hot" if "INVOICE" in str(row["m_status_code"])
+                                                            else "Pipeline Hot" if row["leads_potensial_category"] == "Hot Leads"
                                                             else "Pipeline Warm" if row["total_activity"] >=2
                                                             else "Pipeline Cold" if row["total_activity"] <=1
                                                             else "Pipeline Null", axis=1)
@@ -553,41 +555,94 @@ if st.session_state["authentication_status"]:
 
 
     ################## LEADS STATUS AND M STATUS CODE #################################
-    st.markdown("__Leads Category and Status__")
+    st.subheader("Leads Category and Status")
+
+
+    # selection widget
+    col_code1, col_code2 = st.columns(2)
+    # leads type category
+    leads_type = col_code1.selectbox("Select type of leads", options=["rating", "activity"], index=0, help="Categorizing leads based on rating value or num of activity")
+    min_of_activity = col_code2.selectbox("Min of Activities", options=range(0,11), index=0, help="Select minimum of total activities")
+
+    # SESSION STATE
+    if "type_of_leads" not in st.session_state:
+        st.session_state["type_of_leads"] = leads_type
+
+    if "num_activity" not in st.session_state:
+        st.session_state["num_activity"] = min_of_activity
+
+    # button to update state
+    change_params = st.button("Change filters", key="1")
+
+    # update the state
+    if change_params:
+        st.session_state["type_of_leads"] = leads_type
+        st.session_state["num_activity"] = min_of_activity
+
+    
     df_leads_status_all_year = df_all.loc[
                                     (df_all["submit_at"].dt.year == int(st.session_state.year_target))&
-                                    (df_all["leads_potensial_category"] != "Null")].copy()
+                                    (df_all["leads_potensial_category"] != "Null")&
+                                    (df_all["total_activity"] >= st.session_state["num_activity"])].copy()
+    
+    # rating dataframe
+    df_leads_by_rating = df_leads_status_all_year.groupby(["leads_potensial_category", "m_status_code"])["mt_preleads_code"].count().to_frame().reset_index()
 
-    df_leads_status_per_month = df_all.loc[(df_all["submit_at"].dt.month_name() == st.session_state.month_target) &
-                                    (df_all["submit_at"].dt.year == int(st.session_state.year_target)) & 
-                                    (df_all["leads_potensial_category"] != "Null")].copy()
 
-
-    ########## all years
-    df_grouped_all_year = df_leads_status_all_year.groupby(["leads_potensial_category", "m_status_code"])["mt_preleads_code"].count().to_frame().reset_index()
+    # activity dataframe
+    df_leads_by_activity = df_leads_status_all_year.groupby(["pipeline_by_activity", "m_status_code"])["mt_preleads_code"].count().to_frame().reset_index()
     
 
+    # selected leads dataframe
+    def selected_lead_type(value=st.session_state.type_of_leads):
+        if value == "rating":
+            return df_leads_by_rating
+        else:
+            return df_leads_by_activity
+
+    df_leads_type_category = selected_lead_type()
+
+
+    # selected dataframe column
+    def selected_lead_column(value=st.session_state.type_of_leads):
+        if value == "rating":
+            return "leads_potensial_category"
+        else:
+            return "pipeline_by_activity"
+
+    df_leads_column = selected_lead_column()
+    
+    
+    ####### LEADS CATEGORIES
+
     # DONUT CHART (ALTERNATIVE OF PIE CHART)
-    donut_status_all_year = go.Figure(data=[go.Pie(labels=df_grouped_all_year["leads_potensial_category"], values=df_grouped_all_year["mt_preleads_code"], hole=.35, pull=[0, 0, 0.3])])
+    donut_status_all_year = go.Figure(data=[go.Pie(labels=df_leads_type_category[df_leads_column], values=df_leads_type_category["mt_preleads_code"], hole=.35, pull=[0, 0,0.3])])
     donut_status_all_year.update_traces(textposition='inside', textinfo='percent+label', textfont_size=12, marker=dict(colors=color_pie, line=dict(color='#000000', width=1.25)))
     donut_status_all_year.update_layout(title_text=f"Processed Leads Based on Category of {st.session_state.year_target}", width=500, height=500)
     st.plotly_chart(donut_status_all_year, use_container_width=True)
 
-   # DONUT CHART (ALTERNATIVE OF PIE CHART)
-    donut_status_all_year_code = go.Figure(data=[go.Pie(labels=df_grouped_all_year["m_status_code"], values=df_grouped_all_year["mt_preleads_code"], hole=.35, pull=[0, 0, 0.3])])
-    donut_status_all_year_code.update_traces(textposition='inside', textinfo='percent+label', textfont_size=12, marker=dict(colors=color_pie, line=dict(color='#000000', width=1.25)))
-    donut_status_all_year_code.update_layout(title_text=f"Processed Leads Based on Status Code of {st.session_state.year_target}", width=500, height=500)
-    st.plotly_chart(donut_status_all_year_code, use_container_width=True)
-
-
+   
     # SUNBURST
-    sunburst_lead_status_code = px.sunburst(df_grouped_all_year, path=["leads_potensial_category", "m_status_code"],
+    sunburst_lead_status_code = px.sunburst(df_leads_type_category, path=[df_leads_type_category.columns[0], df_leads_type_category.columns[1]],
                         title="Leads Category by Status Code", color_discrete_sequence=px.colors.qualitative.Pastel2,
                     values='mt_preleads_code', width=500, height=500)
     sunburst_lead_status_code.update_traces(textinfo="label+percent parent")
     st.plotly_chart(sunburst_lead_status_code, use_container_width=True)
 
-    ################## LEADS STATUS AND M STATUS CODE #################################
+
+    ####### M STATUS CODE
+    # DONUT CHART (ALTERNATIVE OF PIE CHART)
+    donut_status_all_year_code = go.Figure(data=[go.Pie(labels=df_leads_type_category["m_status_code"], values=df_leads_type_category["mt_preleads_code"], hole=.35, pull=[0, 0, 0.3])])
+    donut_status_all_year_code.update_traces(textposition='inside', textinfo='percent+label', textfont_size=12, marker=dict(colors=color_pie, line=dict(color='#000000', width=1.25)))
+    donut_status_all_year_code.update_layout(title_text=f"Processed Leads Based on Status Code of {st.session_state.year_target}", width=500, height=500)
+    st.plotly_chart(donut_status_all_year_code, use_container_width=True)
+
+
+    
+
+
+
+    ################## AG GRID #################################
     st.markdown("__Submit and Update Difference__")
     
     df_leads_status_all_year["today"] = pd.to_datetime("today")
