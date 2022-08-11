@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 from st_aggrid import GridOptionsBuilder, AgGrid, GridUpdateMode, DataReturnMode, JsCode
 
 
-st.set_page_config(page_title="Deals Monitoring", page_icon="📢")
+st.set_page_config(page_title="Leads Handling", page_icon="⛮")
 # Create API client google cloud.
 credentials = service_account.Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=["https://www.googleapis.com/auth/cloud-platform"])
 client = storage.Client(credentials=credentials)
@@ -48,7 +48,7 @@ if st.session_state["authentication_status"]:
     
     ############################## CONTENT HERE
     
-    st.markdown("# Daily Deals Monitoring")
+    st.markdown("# Leads Handling")
 
     
     # bucket name
@@ -168,19 +168,17 @@ if st.session_state["authentication_status"]:
 
             # pipeline
             dataframe["pipeline_by_activity"] = dataframe.apply(lambda row:
-                                                            "Pipeline Hot" if row["m_status_code"] == "REQUEST-INVOICE" or row["leads_potensial_category"] == "Hot Leads"
+                                                            "Pipeline Hot" if "INVOICE" in str(row["m_status_code"])
+                                                            else "Pipeline Hot" if row["leads_potensial_category"] == "Hot Leads"
                                                             else "Pipeline Warm" if row["total_activity"] >=2
                                                             else "Pipeline Cold" if row["total_activity"] <=1
                                                             else "Pipeline Null", axis=1)
 
             # deal or no deal
             dataframe["deal"] = dataframe.apply(lambda row: 
-                                                        "deal" if row["m_status_code"] == "REQUESTED-PAYMENT"
-                                                        else "pipeline" if row["m_status_code"] == "APPROVED-INVOICE"
+                                                        "deal" if "PAYMENT" in str(row["m_status_code"])
+                                                        else "pipeline" if "INVOICE" in str(row["m_status_code"])
                                                         else "deal" if row["m_status_code"] == "PAID"
-                                                        else "pipeline" if row["m_status_code"] == "REQUEST-INVOICE"
-                                                        else "pipeline" if row["m_status_code"] == "REJECTED-INVOICE"
-                                                        else "deal" if row["m_status_code"] == "REJECTED-PAYMENT"
                                                         else "leads", axis=1)
 
             
@@ -300,40 +298,51 @@ if st.session_state["authentication_status"]:
         (df["submit_at"].dt.date <= st.session_state["assigned_end_date"])
     ].copy()
 
+    # total retouched
     df_retouched = df_assigned.loc[
         (df_assigned["m_status_code"].isin(["APPROVED-INVOICE", "FOLLOW-UP", "PAID", "REJECTED-INVOICE", "REJECTED-PAYMENT", "REQUEST-INVOICE", "REQUESTED-PAYMENT"])) &
         (df_assigned["total_activity"] >= st.session_state["assigned_act_num"])
     ].copy()
 
-    df_new_rejected = df_assigned.loc[
-        df_assigned["m_status_code"].isin(["NEW", "REJECTED-LEADS"])
+    # total rejected
+    df_rejected = df_assigned.loc[
+        df_assigned["m_status_code"] == "REJECTED-LEADS"
     ].copy()
+
+    # total new
+    df_new = df_assigned.loc[
+        df_assigned["m_status_code"] == "NEW"
+    ].copy()
+
 
     ############################ FISRT SUMMMARY METRIC = TOTAL ASSIGN and TOTAL RETOUCH
     # create columns 
-    col_met1, col_met2, col_met3, col_met4 = st.columns(4)
+    col_met1, col_met2, col_met3, col_met4, col_met5 = st.columns(5)
 
     len_assigned = len(df_assigned)
     len_retouched = len(df_retouched)
-    len_new_rejected = len(df_new_rejected)
+    len_rejected = len(df_rejected)
+    len_new = len(df_new)
 
     col_met1.metric("Total assigned", value=format(len_assigned, ","), delta=f"{len_assigned/len_assigned:.2%}", help="All leads assigned to telesales")
     col_met2.metric("Total retouched", value=format(len_retouched, ","), delta="{:.2%}".format(len_retouched/len_assigned), help=f"Num of leads followed up more than { st.session_state.assigned_act_num} activities")
-    col_met3.metric("Total new and rejected", value=format(len_new_rejected, ","), delta=f"{len_new_rejected/len_assigned:.2%}", help="Num of new leads and rejected leads")
-    col_met4.metric("Total gap", value=format(len_retouched + len_new_rejected - len_assigned, ","), delta=f"{(len_retouched + len_new_rejected - len_assigned)/len_assigned:.2%}", help="Num of leads left as follow up")
+    col_met3.metric("Total rejected", value=format(len_rejected, ","), delta=f"{len_rejected/len_assigned:.2%}", help="Num of rejected leads")
+    col_met4.metric("Total new", value=format(len_new, ","), delta=f"{len_new/len_assigned:.2%}", help="Num of new leads (no follow-up yet)")
+    col_met5.metric("Total gap", value=format(len_retouched + len_rejected + len_new - len_assigned, ","), delta=f"{(len_retouched + len_rejected + len_new - len_assigned)/len_assigned:.2%}", help="Num of leads left as follow up")
     
     # average number of activities per lead
     st.markdown(f"Average number of activities per lead: __{df_assigned['total_activity'].mean():.2f}__")
     
      ####################### ASSIGNED and RETOUCHED DATAFRAME ########################
     # section title
-    st.subheader("Assigned and Retouched Based on Campaign")
+    st.subheader("Assigned and Retouched Based on Sources")
     st.markdown("Based on __Submit Date__")
     
-    tab_campaign1, tab_campaign2 = st.tabs(["Main Campaign", "Campaign Tag"])
+    tab_campaign1, tab_campaign2, tab_campaign3 = st.tabs(["Campaign Tag", "Main Campaign", "Data Source"])
 
     with tab_campaign1:
-        st.subheader("Campaign Tag")
+        st.markdown("__Campaign Tag__")
+
         # assigned dataframe
         df_assigned_tag = df_assigned.groupby("campaign_tag")["mt_preleads_code"].count().to_frame().reset_index()
         df_assigned_tag.columns = ["campaign_tag", "assigned_leads"]
@@ -342,22 +351,91 @@ if st.session_state["authentication_status"]:
         df_retouched_tag = df_retouched.groupby("campaign_tag")["mt_preleads_code"].count().to_frame().reset_index()
         df_retouched_tag.columns = ["campaign_tag", "retouched_leads"]
 
-        # new and rejected dataframe
-        df_new_rejected_tag = df_new_rejected.groupby("campaign_tag")["mt_preleads_code"].count().to_frame().reset_index()
-        df_new_rejected_tag.columns = ["campaign_tag", "new_rejected_leads"]
+        # rejected dataframe
+        df_rejected_tag = df_rejected.groupby("campaign_tag")["mt_preleads_code"].count().to_frame().reset_index()
+        df_rejected_tag.columns = ["campaign_tag", "rejected_leads"]
 
-        df_campaign_tag = pd.merge(df_assigned_tag, df_retouched_tag, how="left", left_on="campaign_tag", right_on="campaign_tag").merge(df_new_rejected_tag, how="left", right_on="campaign_tag", left_on="campaign_tag").fillna(0)
+        # new dataframe
+        df_new_tag = df_new.groupby("campaign_tag")["mt_preleads_code"].count().to_frame().reset_index()
+        df_new_tag.columns = ["campaign_tag", "new_leads"]
+
+        # campaign_tag dataframe
+        df_campaign_tag = pd.merge(df_assigned_tag, df_retouched_tag, how="left", left_on="campaign_tag", right_on="campaign_tag").merge(df_rejected_tag, how="left", right_on="campaign_tag", left_on="campaign_tag").merge(df_new_tag, how="left", right_on="campaign_tag", left_on="campaign_tag").fillna(0)
         df_campaign_tag["retouched_leads"] = df_campaign_tag["retouched_leads"].astype("int")
-        df_campaign_tag["new_rejected_leads"] = df_campaign_tag["new_rejected_leads"].astype("int")
-        df_campaign_tag["gap_leads"] = df_campaign_tag["assigned_leads"] - df_campaign_tag["retouched_leads"] - df_campaign_tag["new_rejected_leads"]
+        df_campaign_tag["rejected_leads"] = df_campaign_tag["rejected_leads"].astype("int")
+        df_campaign_tag["new_leads"] = df_campaign_tag["new_leads"].astype("int")
+        df_campaign_tag["gap_leads"] = df_campaign_tag["assigned_leads"] - df_campaign_tag["retouched_leads"] - df_campaign_tag["rejected_leads"] - df_campaign_tag["new_leads"]
 
+        # ag grid
         grid_df_campaign_tag = AgGrid(df_campaign_tag, editable=True, key="1")
         new_df_campaign_tag = grid_df_campaign_tag["data"]
 
         
     
     with tab_campaign2:
-        st.subheader("Main Campaign")
+        st.markdown("__Main Campaign__")
+        
+        # assigned dataframe
+        df_assigned_main = df_assigned.groupby("main_campaign")["mt_preleads_code"].count().to_frame().reset_index()
+        df_assigned_main.columns = ["main_campaign", "assigned_leads"]
+
+        # retouched dataframe
+        df_retouched_main = df_retouched.groupby("main_campaign")["mt_preleads_code"].count().to_frame().reset_index()
+        df_retouched_main.columns = ["main_campaign", "retouched_leads"]
+
+        # rejected dataframe
+        df_rejected_main = df_rejected.groupby("main_campaign")["mt_preleads_code"].count().to_frame().reset_index()
+        df_rejected_main.columns = ["main_campaign", "rejected_leads"]
+
+        # new dataframe
+        df_new_main = df_new.groupby("main_campaign")["mt_preleads_code"].count().to_frame().reset_index()
+        df_new_main.columns = ["main_campaign", "new_leads"]
+
+        # main campaign dataframe
+        df_campaign_main = pd.merge(df_assigned_main, df_retouched_main, how="left", left_on="main_campaign", right_on="main_campaign").merge(df_rejected_main, how="left", right_on="main_campaign", left_on="main_campaign").merge(df_new_main, how="left", right_on="main_campaign", left_on="main_campaign").fillna(0)
+        df_campaign_main["retouched_leads"] = df_campaign_main["retouched_leads"].astype("int")
+        df_campaign_main["rejected_leads"] = df_campaign_main["rejected_leads"].astype("int")
+        df_campaign_main["new_leads"] = df_campaign_main["new_leads"].astype("int")
+        df_campaign_main["gap_leads"] = df_campaign_main["assigned_leads"] - df_campaign_main["retouched_leads"] - df_campaign_main["rejected_leads"] - df_campaign_main["new_leads"]
+
+        # ag grid
+        grid_df_campaign_main = AgGrid(df_campaign_main, editable=True, key="2")
+        new_df_campaign_main = grid_df_campaign_main["data"]
+
+
+    with tab_campaign3:
+        st.markdown("__Data Source__")
+
+        # assigned dataframe
+        df_assigned_source = df_assigned.groupby("m_sourceentry_code")["mt_preleads_code"].count().to_frame().reset_index()
+        df_assigned_source.columns = ["m_sourceentry_code", "assigned_leads"]
+
+        # retouched dataframe
+        df_retouched_source = df_retouched.groupby("m_sourceentry_code")["mt_preleads_code"].count().to_frame().reset_index()
+        df_retouched_source.columns = ["m_sourceentry_code", "retouched_leads"]
+
+        # rejected dataframe
+        df_rejected_source = df_rejected.groupby("m_sourceentry_code")["mt_preleads_code"].count().to_frame().reset_index()
+        df_rejected_source.columns = ["m_sourceentry_code", "rejected_leads"]
+
+        # new dataframe
+        df_new_source = df_new.groupby("m_sourceentry_code")["mt_preleads_code"].count().to_frame().reset_index()
+        df_new_source.columns = ["m_sourceentry_code", "new_leads"]
+
+        # data source dataframe
+        df_campaign_source = pd.merge(df_assigned_source, df_retouched_source, how="left", left_on="m_sourceentry_code", right_on="m_sourceentry_code").merge(df_rejected_source, how="left", right_on="m_sourceentry_code", left_on="m_sourceentry_code").merge(df_new_source, how="left", right_on="m_sourceentry_code", left_on="m_sourceentry_code")
+        df_campaign_source["retouched_leads"] = df_campaign_source["retouched_leads"].astype("int")
+        df_campaign_source["rejected_leads"] = df_campaign_source["rejected_leads"].astype("int")
+        df_campaign_source["new_leads"] = df_campaign_source["new_leads"].astype("int")
+        df_campaign_source["gap_leads"] = df_campaign_source["assigned_leads"] - df_campaign_source["retouched_leads"] - df_campaign_source["rejected_leads"] - df_campaign_source["new_leads"]
+
+        # ag grid
+        grid_df_campaign_source = AgGrid(df_campaign_source, editable=True, key="3")
+        new_df_campaign_source = grid_df_campaign_source["data"]
+
+
+
+
 
     ############################## END OF CONTENT
     

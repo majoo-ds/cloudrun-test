@@ -171,10 +171,8 @@ if st.session_state["authentication_status"]:
             # deal or no deal
             dataframe["deal"] = dataframe.apply(lambda row: 
                                                         "deal" if "PAYMENT" in str(row["m_status_code"])
-                                                        else "pipeline" if row["m_status_code"] == "APPROVED-INVOICE"
+                                                        else "pipeline" if "INVOICE" in str(row["m_status_code"])
                                                         else "deal" if row["m_status_code"] == "PAID"
-                                                        else "pipeline" if row["m_status_code"] == "REQUEST-INVOICE"
-                                                        else "pipeline" if row["m_status_code"] == "REJECTED-INVOICE"
                                                         else "leads", axis=1)
 
             
