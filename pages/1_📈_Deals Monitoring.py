@@ -351,7 +351,10 @@ if st.session_state["authentication_status"]:
         df_campaign_tag["new_rejected_leads"] = df_campaign_tag["new_rejected_leads"].astype("int")
         df_campaign_tag["gap_leads"] = df_campaign_tag["assigned_leads"] - df_campaign_tag["retouched_leads"] - df_campaign_tag["new_rejected_leads"]
 
-        st.dataframe(df_campaign_tag)
+        grid_df_campaign_tag = AgGrid(df_campaign_tag, editable=True, key="1")
+        new_df_campaign_tag = grid_df_campaign_tag["data"]
+
+        
     
     with tab_campaign2:
         st.subheader("Main Campaign")
