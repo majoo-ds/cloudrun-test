@@ -240,7 +240,7 @@ if st.session_state["authentication_status"]:
     total_leads_monthly_fig = go.Figure(data=[go.Bar(
                 x=first_touch_total["submit_at"], y=first_touch_total["mt_preleads_code"],
                 text=first_touch_total["mt_preleads_code"],
-                textposition='auto',marker_color='LightBlue', marker_line_color='rgb(8,48,107)'
+                textposition='auto',marker_color='gold', marker_line_color='rgb(8,48,107)'
             )])
 
     total_leads_monthly_fig.update_traces(texttemplate='%{text:,}')
@@ -459,6 +459,7 @@ if st.session_state["authentication_status"]:
     hw_leads = df_all.loc[(df_all["submit_at"].dt.month_name() == st.session_state.month_target) &
                                     (df_all["submit_at"].dt.year == int(st.session_state.year_target)) &
                                     (df_all["leads_potensial_category"] != "Null")].groupby([pd.Grouper(key="submit_at", freq="MS"), "leads_potensial_category"])["mt_preleads_code"].count().to_frame().reset_index()
+    
     # long to wide format
     hw_leads_wide = pd.pivot(hw_leads, index="submit_at", columns="leads_potensial_category", values="mt_preleads_code").reset_index()
 
@@ -467,6 +468,7 @@ if st.session_state["authentication_status"]:
     hw_leads_act = df_all.loc[(df_all["submit_at"].dt.month_name() == st.session_state.month_target) &
                                     (df_all["submit_at"].dt.year == int(st.session_state.year_target)) &
                                     (df_all["leads_potensial_category"] != "Null")].groupby([pd.Grouper(key="submit_at", freq="MS"), "pipeline_by_activity"])["mt_preleads_code"].count().to_frame().reset_index()
+    
     # long to wide format
     hw_leads_wide_act = pd.pivot(hw_leads_act, index="submit_at", columns="pipeline_by_activity", values="mt_preleads_code").reset_index()
 
@@ -478,7 +480,6 @@ if st.session_state["authentication_status"]:
             return hw_leads_wide_act
 
     df_leads_filtered = selected_lead_dataframe()
-    
     
     # selected type (accumulation)
     # if total leads = sum(h+c+w)
@@ -549,6 +550,76 @@ if st.session_state["authentication_status"]:
             'bar': {'color': color5}}))
     bullet_target_fig.update_layout(height = 300 , margin = {'t':0, 'b':0, 'l':0})        
     st.plotly_chart(bullet_target_fig, use_container_width=True)
+
+
+    ############# INCLUDING CAMPAIGN WITHIN DATAFRAME ########################
+    st.subheader("Number of HW Leads Based on Activity/Rating")
+    st.markdown("Based on __Submit Date__")
+    # selection widget
+    col_hw1, col_hw2 = st.columns(2)
+    # leads type category
+    date_start_hw = col_hw1.date_input("Select start date", value=datetime.datetime.today().replace(day=1), help="Based on submit at", key="100")
+    date_end_hw = col_hw2.date_input("Select end date", value=datetime.datetime.today(), help="Based on submit at", key="101")
+
+    if "start_date_hw" not in st.session_state:
+        st.session_state["start_date_hw"] = date_start_hw
+
+    if "end_date_hw" not in st.session_state:
+        st.session_state["end_date_hw"] = date_end_hw
+
+    # button to update state
+    change_date = st.button("Change date", key="2")
+
+    # update the state
+    if change_date:
+        st.session_state["start_date_hw"] = date_start_hw
+        st.session_state["end_date_hw"] = date_end_hw
+
+    #################################### BY RATING
+    # dataframe containing campaign_tag and main campaign
+    hw_leads_campaign = df_all.loc[(df_all["submit_at"].dt.date >= st.session_state.start_date_hw) &
+                                    (df_all["submit_at"].dt.date <= st.session_state.end_date_hw) &
+                                    (df_all["leads_potensial_category"] != "Null")].groupby(["main_campaign", "campaign_tag", "leads_potensial_category"])["mt_preleads_code"].count().to_frame().reset_index()
+    hw_leads_campaign = hw_leads_campaign.loc[hw_leads_campaign["leads_potensial_category"] != "Cold Leads"].copy()
+    hw_leads_campaign.columns = ["main_campaign", "campaign_tag", "hw_by_rating", "count"]
+    hw_leads_campaign["_%"] = hw_leads_campaign["count"]/sum(hw_leads_campaign["count"])
+    hw_leads_campaign["_%"] = hw_leads_campaign["_%"].apply(lambda x: "{0:.2f}%".format(x*100))
+    
+    
+    
+
+    #################################### BY ACTIVITY
+    # dataframe containing campaign_tag and main campaign
+    hw_leads_act_campaign = df_all.loc[(df_all["submit_at"].dt.date >= st.session_state.start_date_hw) &
+                                    (df_all["submit_at"].dt.date <= st.session_state.end_date_hw) &
+                                    (df_all["leads_potensial_category"] != "Null")].groupby(["main_campaign", "campaign_tag", "pipeline_by_activity"])["mt_preleads_code"].count().to_frame().reset_index()
+    hw_leads_act_campaign = hw_leads_act_campaign.loc[hw_leads_act_campaign["pipeline_by_activity"] != "Pipeline Cold"].copy()
+
+    hw_leads_act_campaign.columns = ["main_campaign", "campaign_tag", "hw_by_activity", "count"]
+    hw_leads_act_campaign["_%"] = hw_leads_act_campaign["count"]/sum(hw_leads_act_campaign["count"])
+    hw_leads_act_campaign["_%"] = hw_leads_act_campaign["_%"].apply(lambda x: "{0:.2f}%".format(x*100))
+
+    
+    
+
+    # create function to choose the dataframe
+    # selected leads dataframe
+    def get_hw_table(value=st.session_state.year_method):
+        if value == "rating":
+            # ag grid
+            st.markdown(f"Total HW by rating: __{hw_leads_campaign['count'].sum()}__")
+            grid_df_hw_leads_campaign = AgGrid(hw_leads_campaign, editable=True, key="10")
+            return grid_df_hw_leads_campaign["data"]
+        else:
+            # ag grid
+            st.markdown(f"Total HW by activity: __{hw_leads_act_campaign['count'].sum()}__")
+            grid_df_hw_act_leads_campaign = AgGrid(hw_leads_act_campaign, editable=True, key="11")
+            return grid_df_hw_act_leads_campaign["data"]
+
+    # run the function
+    ag_grid_hw = get_hw_table()
+
+
 
 
     ################## LEADS STATUS AND M STATUS CODE #################################
