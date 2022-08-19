@@ -261,6 +261,7 @@ if st.session_state["authentication_status"]:
     df_clean_extra_note3 = pd.json_normalize(json_notes3)
     # final clean dataframe
     df_extra_cleaned_note = pd.merge(df_clean_extra_note3, df_submit, how="left", left_on="mt_preleads_code", right_on="mt_preleads_code")
+    df_extra_cleaned_note.drop_duplicates(subset=["mt_preleads_code"], inplace=True)
 
 
     ############################ TABS OF EXTRA NOTES #########################
