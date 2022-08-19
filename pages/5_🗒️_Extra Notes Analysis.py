@@ -238,17 +238,24 @@ if st.session_state["authentication_status"]:
 
     # SECOND EXTRACTION
     df_extra_notes_2 = df_cleaned_grab_marketplace.loc[df_cleaned_grab_marketplace["extra_note"].notnull()].copy()
-    df_extra_notes_2["extra_note"] = df_extra_notes_2["extra_note"].apply(ast.literal_eval)
-    # normalize the column order_transaction
-    json_notes2 = json.loads(df_extra_notes_2[["mt_preleads_code", "extra_note"]].to_json(orient="records"))    
+    
+    def none_to_empty_str(items):
+        return {k: v if v is not None else '' for k, v in items}
+    
+    df_extra_notes_2["extra_note"] = df_extra_notes_2["extra_note"].apply(lambda x: json.dumps(x))
+    df_extra_notes_2["extra_note"] = df_extra_notes_2["extra_note"].apply(lambda x: json.loads(x, object_pairs_hook=none_to_empty_str))
+    
+    null = None
+    
+    df_extra_notes_2["extra_note"] = df_extra_notes_2["extra_note"].apply(lambda x: eval(x))
+    json_notes2 = json.loads(df_extra_notes_2.to_json(orient="records"))    
     df_clean_extra_note2 = pd.json_normalize(json_notes2)
-    # final clean dataframe
     df_cleaned_note = pd.merge(df_clean_extra_note2, df_submit, how="left", left_on="mt_preleads_code", right_on="mt_preleads_code")
-
+    
 
     # THIRD EXTRACTION
     df_extra_notes_3 = df_cleaned_note.loc[df_cleaned_note["extra_note"].notnull()].copy()
-    df_extra_notes_3["extra_note"] = df_extra_notes_3["extra_note"].apply(ast.literal_eval)
+    df_extra_notes_3["extra_note"] = df_extra_notes_3["extra_note"].apply(lambda x: eval(x))
     # normalize the column order_transaction
     json_notes3 = json.loads(df_extra_notes_3[["mt_preleads_code", "extra_note"]].to_json(orient="records"))    
     df_clean_extra_note3 = pd.json_normalize(json_notes3)
@@ -257,7 +264,7 @@ if st.session_state["authentication_status"]:
 
 
     ############################ TABS OF EXTRA NOTES #########################
-    tab_note1, tab_note2, tab_note3 = st.tabs(["Interesting Features", "Installation Time", "Preferred Contact"])
+    tab_note1, tab_note2, tab_note3, tab_note4 = st.tabs(["Interesting Features", "Installation Time", "Preferred Contact", "Business Development"])
 
     with tab_note1:
         st.markdown("__Interesting Feature__")
@@ -269,9 +276,18 @@ if st.session_state["authentication_status"]:
         df_interesting_feature.columns = ["feature", "count", "%_of_count"]
 
         # hw dataframe
-        hw_interesting_feature = df_extra_cleaned_note.loc[(df_extra_cleaned_note["extra_note.interesting_features"].notnull()) &
-                         (df_extra_cleaned_note["hw"] == "hw")].groupby("extra_note.interesting_features")["mt_preleads_code"].count().to_frame().reset_index()
-        hw_interesting_feature.columns = ["feature", "hw_count"]
+        warm_interesting_feature = df_extra_cleaned_note.loc[(df_extra_cleaned_note["extra_note.interesting_features"].notnull()) &
+                         (df_extra_cleaned_note["leads_potensial_category"] == "Warm Leads")].groupby("extra_note.interesting_features")["mt_preleads_code"].count().to_frame().reset_index()
+        warm_interesting_feature.columns = ["feature", "warm_count"]
+        
+        hot_interesting_feature = df_extra_cleaned_note.loc[(df_extra_cleaned_note["extra_note.interesting_features"].notnull()) &
+                         (df_extra_cleaned_note["leads_potensial_category"] == "Hot Leads")].groupby("extra_note.interesting_features")["mt_preleads_code"].count().to_frame().reset_index()
+        hot_interesting_feature.columns = ["feature", "hot_count"]
+
+        # deal dataframe
+        deal_interesting_feature = df_extra_cleaned_note.loc[(df_extra_cleaned_note["extra_note.interesting_features"].notnull()) &
+                         (df_extra_cleaned_note["deal"] == "deal")].groupby("extra_note.interesting_features")["mt_preleads_code"].count().to_frame().reset_index()
+        deal_interesting_feature.columns = ["feature", "deal_count"]
 
         # campaign_tag dataframe
         campaign_tag_interesting_feature = df_extra_cleaned_note.loc[df_extra_cleaned_note["extra_note.interesting_features"].notnull()].groupby(["extra_note.interesting_features", "campaign_tag"])["mt_preleads_code"].count().to_frame().reset_index()
@@ -280,9 +296,16 @@ if st.session_state["authentication_status"]:
         campaign_tag_interesting_feature.fillna(0, inplace=True)
         
         # final dataframe
-        df_interesting_feature_final = pd.merge(df_interesting_feature, hw_interesting_feature, how="left", left_on="feature", right_on="feature").merge(
-                                            campaign_tag_interesting_feature, how="left", left_on="feature", right_on="feature")
+        df_interesting_feature_final = pd.merge(df_interesting_feature, warm_interesting_feature, how="left", left_on="feature", right_on="feature").merge(
+                                               hot_interesting_feature, how="left", left_on="feature", right_on="feature" 
+                                            ).merge(
+                                                deal_interesting_feature, how="left", left_on="feature", right_on="feature"
+                                            ).merge(
+                                                campaign_tag_interesting_feature, how="left", left_on="feature", right_on="feature"
+                                            )
         df_interesting_feature_final.fillna(0, inplace=True)
+        df_interesting_feature_final["deal_conversion"] = df_interesting_feature_final["deal_count"] / df_interesting_feature_final["count"]
+        df_interesting_feature_final["deal_conversion"] = df_interesting_feature_final["deal_conversion"].apply(lambda x: "{0:.2f}%".format(x*100))
 
         # ag grid
         grid_df_interesting_feature = AgGrid(df_interesting_feature_final, editable=True, key="0")
@@ -299,9 +322,18 @@ if st.session_state["authentication_status"]:
         df_installation_time.columns = ["installation", "count", "%_of_count"]
 
         # hw dataframe
-        hw_installation = df_extra_cleaned_note.loc[(df_extra_cleaned_note["extra_note.installation_time"].notnull()) &
-                         (df_extra_cleaned_note["hw"] == "hw")].groupby("extra_note.installation_time")["mt_preleads_code"].count().to_frame().reset_index()
-        hw_installation.columns = ["installation", "hw_count"]
+        warm_installation = df_extra_cleaned_note.loc[(df_extra_cleaned_note["extra_note.installation_time"].notnull()) &
+                         (df_extra_cleaned_note["leads_potensial_category"] == "Warm Leads")].groupby("extra_note.installation_time")["mt_preleads_code"].count().to_frame().reset_index()
+        warm_installation.columns = ["installation", "warm_count"]
+
+        hot_installation = df_extra_cleaned_note.loc[(df_extra_cleaned_note["extra_note.installation_time"].notnull()) &
+                         (df_extra_cleaned_note["leads_potensial_category"] == "Hot Leads")].groupby("extra_note.installation_time")["mt_preleads_code"].count().to_frame().reset_index()
+        hot_installation.columns = ["installation", "hot_count"]
+
+        # deal dataframe
+        deal_installation = df_extra_cleaned_note.loc[(df_extra_cleaned_note["extra_note.installation_time"].notnull()) &
+                         (df_extra_cleaned_note["deal"] == "deal")].groupby("extra_note.installation_time")["mt_preleads_code"].count().to_frame().reset_index()
+        deal_installation.columns = ["installation", "deal_count"]
 
         # campaign_tag dataframe
         campaign_tag_installation = df_extra_cleaned_note.loc[df_extra_cleaned_note["extra_note.installation_time"].notnull()].groupby(["extra_note.installation_time", "campaign_tag"])["mt_preleads_code"].count().to_frame().reset_index()
@@ -310,13 +342,20 @@ if st.session_state["authentication_status"]:
         campaign_tag_installation.fillna(0, inplace=True)
         
         # final dataframe
-        df_installation_final = pd.merge(df_installation_time, hw_installation, how="left", left_on="installation", right_on="installation").merge(
-                                        campaign_tag_installation, how="left", left_on="installation", right_on="installation")
+        df_installation_final = pd.merge(df_installation_time, warm_installation, how="left", left_on="installation", right_on="installation").merge(
+                                                hot_installation, how="left", left_on="installation", right_on="installation"
+                                            ).merge(
+                                                deal_installation, how="left", left_on="installation", right_on="installation"
+                                            ).merge(
+                                                campaign_tag_installation, how="left", left_on="installation", right_on="installation")
         df_installation_final.fillna(0, inplace=True)
+        df_installation_final["deal_conversion"] = df_installation_final["deal_count"] / df_installation_final["count"]
+        df_installation_final["deal_conversion"] = df_installation_final["deal_conversion"].apply(lambda x: "{0:.2f}%".format(x*100))
 
         # ag grid
         grid_df_installation_final = AgGrid(df_installation_final, editable=True, key="1")
         new_df_campaign_tag = grid_df_installation_final["data"]
+
 
     with tab_note3:
         st.markdown("__Preferred Contact__")
@@ -328,9 +367,17 @@ if st.session_state["authentication_status"]:
         df_contact.columns = ["contact", "count", "%_of_count"]
 
         # hw dataframe
-        hw_contact = df_extra_cleaned_note.loc[(df_extra_cleaned_note["extra_note.prefered_contact"].notnull()) &
-                         (df_extra_cleaned_note["hw"] == "hw")].groupby("extra_note.prefered_contact")["mt_preleads_code"].count().to_frame().reset_index()
-        hw_contact.columns = ["contact", "hw_count"]
+        warm_contact = df_extra_cleaned_note.loc[(df_extra_cleaned_note["extra_note.prefered_contact"].notnull()) &
+                         (df_extra_cleaned_note["leads_potensial_category"] == "Warm Leads")].groupby("extra_note.prefered_contact")["mt_preleads_code"].count().to_frame().reset_index()
+        warm_contact.columns = ["contact", "warm_count"]
+        hot_contact = df_extra_cleaned_note.loc[(df_extra_cleaned_note["extra_note.prefered_contact"].notnull()) &
+                         (df_extra_cleaned_note["leads_potensial_category"] == "Hot Leads")].groupby("extra_note.prefered_contact")["mt_preleads_code"].count().to_frame().reset_index()
+        hot_contact.columns = ["contact", "hot_count"]
+
+        # deal dataframe
+        deal_contact = df_extra_cleaned_note.loc[(df_extra_cleaned_note["extra_note.prefered_contact"].notnull()) &
+                         (df_extra_cleaned_note["deal"] == "deal")].groupby("extra_note.prefered_contact")["mt_preleads_code"].count().to_frame().reset_index()
+        deal_contact.columns = ["contact", "deal_count"]
 
         # campaign_tag dataframe
         campaign_tag_contact = df_extra_cleaned_note.loc[df_extra_cleaned_note["extra_note.prefered_contact"].notnull()].groupby(["extra_note.prefered_contact", "campaign_tag"])["mt_preleads_code"].count().to_frame().reset_index()
@@ -339,15 +386,64 @@ if st.session_state["authentication_status"]:
         campaign_tag_contact.fillna(0, inplace=True)
 
         # final dataframe
-        df_contact_final = pd.merge(df_contact, hw_contact, how="left", left_on="contact", right_on="contact").merge(
-                                campaign_tag_contact, how="left", left_on="contact", right_on="contact")
+        df_contact_final = pd.merge(df_contact, warm_contact, how="left", left_on="contact", right_on="contact").merge(
+                                        hot_contact, how="left", left_on="contact", right_on="contact"
+                                    ).merge(
+                                        deal_contact, how="left", left_on="contact", right_on="contact"
+                                    ).merge(
+                                        campaign_tag_contact, how="left", left_on="contact", right_on="contact")
         df_contact_final.fillna(0, inplace=True)
-
-        # ag grid
+        df_contact_final["deal_conversion"] = df_contact_final["deal_count"] / df_contact_final["count"]
+        df_contact_final["deal_conversion"] = df_contact_final["deal_conversion"].apply(lambda x: "{0:.2f}%".format(x*100))
+        
         # ag grid
         grid_df_contact_final = AgGrid(df_contact_final, editable=True, key="2")
         new_df_campaign_tag = grid_df_contact_final["data"]
         
+
+    with tab_note4:
+        st.markdown("__Business Development__")
+
+        # main dataframe
+        df_busdev = df_extra_cleaned_note["extra_note.business_development"].value_counts().to_frame().reset_index()
+        df_busdev["_%"] = df_busdev["extra_note.business_development"]/sum(df_busdev["extra_note.business_development"])
+        df_busdev["_%"] = df_busdev["_%"].apply(lambda x: "{0:.2f}%".format(x*100))
+        df_busdev.columns = ["busdev", "count", "%_of_count"]
+        
+        # hw dataframe
+        warm_busdev = df_extra_cleaned_note.loc[(df_extra_cleaned_note["extra_note.business_development"].notnull()) &
+                         (df_extra_cleaned_note["leads_potensial_category"] == "Warm Leads")].groupby("extra_note.business_development")["mt_preleads_code"].count().to_frame().reset_index()
+        warm_busdev.columns = ["busdev", "warm_count"]
+        hot_busdev = df_extra_cleaned_note.loc[(df_extra_cleaned_note["extra_note.business_development"].notnull()) &
+                         (df_extra_cleaned_note["leads_potensial_category"] == "Hot Leads")].groupby("extra_note.business_development")["mt_preleads_code"].count().to_frame().reset_index()
+        hot_busdev.columns = ["busdev", "hot_count"]
+
+        
+        # deal dataframe
+        deal_busdev = df_extra_cleaned_note.loc[(df_extra_cleaned_note["extra_note.business_development"].notnull()) &
+                         (df_extra_cleaned_note["deal"] == "deal")].groupby("extra_note.business_development")["mt_preleads_code"].count().to_frame().reset_index()
+        deal_busdev.columns = ["busdev", "deal_count"]
+
+        # campaign_tag dataframe
+        campaign_tag_busdev = df_extra_cleaned_note.loc[df_extra_cleaned_note["extra_note.business_development"].notnull()].groupby(["extra_note.business_development", "campaign_tag"])["mt_preleads_code"].count().to_frame().reset_index()
+        campaign_tag_busdev.columns = ["busdev", "campaign_tag", "campaign_count"]
+        campaign_tag_busdev = campaign_tag_busdev.pivot(index="busdev", columns="campaign_tag", values="campaign_count")
+        campaign_tag_busdev.fillna(0, inplace=True)
+
+        # final dataframe
+        df_busdev_final = pd.merge(df_busdev, warm_busdev, how="left", left_on="busdev", right_on="busdev").merge(
+                                        hot_busdev, how="left", left_on="busdev", right_on="busdev"
+                                    ).merge(
+                                        deal_busdev, how="left", left_on="busdev", right_on="busdev"
+                                    ).merge(
+                                        campaign_tag_busdev, how="left", left_on="busdev", right_on="busdev")
+        df_busdev_final.fillna(0, inplace=True)
+        df_busdev_final["deal_conversion"] = df_busdev_final["deal_count"] / df_busdev_final["count"]
+        df_busdev_final["deal_conversion"] = df_busdev_final["deal_conversion"].apply(lambda x: "{0:.2f}%".format(x*100))
+
+        # ag grid
+        grid_df_busdev_final = AgGrid(df_busdev_final, editable=True, key="3")
+        new_df_campaign_tag = grid_df_busdev_final["data"]
 
 ############################## END OF CONTENT
     
