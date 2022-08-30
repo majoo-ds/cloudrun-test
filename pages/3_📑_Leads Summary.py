@@ -197,6 +197,9 @@ if st.session_state["authentication_status"]:
                                                                     else "Null" if pd.isnull(row["product_name"])
                                                                     else "Regular", axis=1)
 
+            # remove duplicates
+            dataframe.drop_duplicates(subset=["mt_preleads_code"], inplace=True)
+            
             return dataframe
 
     # run function

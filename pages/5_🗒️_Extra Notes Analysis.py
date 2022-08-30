@@ -178,6 +178,9 @@ if st.session_state["authentication_status"]:
             # main_campaign
             dataframe["main_campaign"] = dataframe["campaign_name"].map(main_campaign_dict)
 
+            # remove duplicates
+            dataframe.drop_duplicates(subset=["mt_preleads_code"], inplace=True)
+
             return dataframe
 
     # run function
@@ -197,7 +200,7 @@ if st.session_state["authentication_status"]:
     date_end_note = col_notes2.date_input("Select end date", value=datetime.datetime.today(), help="Based on submit at")
     
 
-     # SESSION STATE
+    # SESSION STATE
     if "note_start_date" not in st.session_state:
         st.session_state["note_start_date"] = date_start_note
 

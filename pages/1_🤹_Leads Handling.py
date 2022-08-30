@@ -220,6 +220,10 @@ if st.session_state["authentication_status"]:
                                                                     else "CB" if "Surprise" in str(row["product_name"])
                                                                     else "Null" if pd.isnull(row["product_name"])
                                                                     else "Regular", axis=1)
+            
+            # remove duplicates
+            dataframe.drop_duplicates(subset=["mt_preleads_code"], inplace=True)
+            
             return dataframe
 
         
@@ -374,12 +378,16 @@ if st.session_state["authentication_status"]:
     
     tab_campaign1, tab_campaign2, tab_campaign3 = st.tabs(["Campaign Tag", "Main Campaign", "Data Source"])
 
+    
+
     with tab_campaign1:
         st.markdown("__Campaign Tag__")
+        st.markdown(f"Selected date: _{st.session_state.assigned_start_date}_ to _{st.session_state.assigned_end_date}_")
 
         # assigned dataframe
         df_assigned_tag = df_assigned.groupby("campaign_tag")["mt_preleads_code"].count().to_frame().reset_index()
         df_assigned_tag.columns = ["campaign_tag", "assigned_leads"]
+
         
         # retouched dataframe
         df_retouched_tag = df_retouched.groupby("campaign_tag")["mt_preleads_code"].count().to_frame().reset_index()
@@ -419,16 +427,17 @@ if st.session_state["authentication_status"]:
         df_campaign_tag['conversion'] = df_campaign_tag['conversion'].apply(lambda x: "{:.2%}".format(x))
 
         # reorder columns
-        df_campaign_tag = df_campaign_tag.iloc[: , [0,1,2,3,4,8,5,6,7,9]]
+        df_campaign_tag = df_campaign_tag.iloc[: , [0,1,2,3,4,8,5,6,7,9]].copy()
 
         # ag grid
-        grid_df_campaign_tag = AgGrid(df_campaign_tag, editable=True, key="1")
+        grid_df_campaign_tag = AgGrid(df_campaign_tag, reload_data=True, theme='streamlit', key="1")
         new_df_campaign_tag = grid_df_campaign_tag["data"]
 
         
     
     with tab_campaign2:
         st.markdown("__Main Campaign__")
+        st.markdown(f"Selected date: _{st.session_state.assigned_start_date}_ to _{st.session_state.assigned_end_date}_")
         
         # assigned dataframe
         df_assigned_main = df_assigned.groupby("main_campaign")["mt_preleads_code"].count().to_frame().reset_index()
@@ -454,12 +463,13 @@ if st.session_state["authentication_status"]:
         df_campaign_main["gap_leads"] = df_campaign_main["assigned_leads"] - df_campaign_main["retouched_leads"] - df_campaign_main["rejected_leads"] - df_campaign_main["new_leads"]
 
         # ag grid
-        grid_df_campaign_main = AgGrid(df_campaign_main, editable=True, key="2")
+        grid_df_campaign_main = AgGrid(df_campaign_main, reload_data=True, theme='streamlit', key="2")
         new_df_campaign_main = grid_df_campaign_main["data"]
 
 
     with tab_campaign3:
         st.markdown("__Data Source__")
+        st.markdown(f"Selected date: _{st.session_state.assigned_start_date}_ to _{st.session_state.assigned_end_date}_")
 
         # assigned dataframe
         df_assigned_source = df_assigned.groupby("m_sourceentry_code")["mt_preleads_code"].count().to_frame().reset_index()
@@ -485,7 +495,7 @@ if st.session_state["authentication_status"]:
         df_campaign_source["gap_leads"] = df_campaign_source["assigned_leads"] - df_campaign_source["retouched_leads"] - df_campaign_source["rejected_leads"] - df_campaign_source["new_leads"]
 
         # ag grid
-        grid_df_campaign_source = AgGrid(df_campaign_source, editable=True, key="3")
+        grid_df_campaign_source = AgGrid(df_campaign_source, reload_data=True, theme='streamlit', key="3")
         new_df_campaign_source = grid_df_campaign_source["data"]
 
     ####################### ASSIGNED and RETOUCHED DATAFRAME BASED ON SOURCE ########################
@@ -497,6 +507,7 @@ if st.session_state["authentication_status"]:
     
     with tab_tele1:
         st.markdown("__Tele's Name__")
+        st.markdown(f"Selected date: _{st.session_state.assigned_start_date}_ to _{st.session_state.assigned_end_date}_")
 
         # assigned dataframe
         df_assigned_tele_tag = df_assigned.groupby("full_name")["mt_preleads_code"].count().to_frame().reset_index()
@@ -536,16 +547,17 @@ if st.session_state["authentication_status"]:
         df_campaign_tele_tag['conversion'] = df_campaign_tele_tag['conversion'].apply(lambda x: "{:.2%}".format(x))
         
         # reorder columns
-        df_campaign_tele_tag = df_campaign_tele_tag.iloc[: , [0,1,2,3,4,8,5,6,7,9]]
+        df_campaign_tele_tag = df_campaign_tele_tag.iloc[: , [0,1,2,3,4,8,5,6,7,9]].copy()
         
         # ag grid
-        grid_df_campaign_tele_tag = AgGrid(df_campaign_tele_tag, editable=True, key="4")
+        grid_df_campaign_tele_tag = AgGrid(df_campaign_tele_tag, reload_data=True, theme='streamlit', key="4")
         new_df_campaign_tele_tag = grid_df_campaign_tele_tag["data"]
         
 
 
     with tab_tele2:
         st.markdown("__Campaign Tag__")
+        st.markdown(f"Selected date: _{st.session_state.assigned_start_date}_ to _{st.session_state.assigned_end_date}_")
 
         # selection
         select_df_campaign_tag = st.selectbox("Select data", options=["Assigned", "Retouched", "New", "Rejected"], index=0)
@@ -580,13 +592,14 @@ if st.session_state["authentication_status"]:
         df_used_campaign_tag_pivot.reset_index(inplace=True)
 
         # ag grid
-        grid_df_used_campaign_tag = AgGrid(df_used_campaign_tag_pivot, editable=True, key="5")
+        grid_df_used_campaign_tag = AgGrid(df_used_campaign_tag_pivot, reload_data=True, theme='streamlit', key="5")
         new_df_used_campaign_tele_tag = grid_df_used_campaign_tag["data"]
 
 
     with tab_tele3:
         st.markdown("__Activities__")
         st.markdown("_Average num of activities of All Assigned leads_")
+        st.markdown(f"Selected date: _{st.session_state.assigned_start_date}_ to _{st.session_state.assigned_end_date}_")
 
         df_avg_activity = df_assigned.groupby("full_name")["total_activity"].mean().to_frame().reset_index()
         df_avg_activity.columns = ["full_name", "average_activity"]
@@ -595,12 +608,13 @@ if st.session_state["authentication_status"]:
         
 
         # ag grid
-        grid_avg_activity = AgGrid(df_avg_activity, editable=True, key="6")
+        grid_avg_activity = AgGrid(df_avg_activity, reload_data=True, theme='streamlit', key="6")
         new_grid_avg_activity = grid_avg_activity["data"]
 
     with tab_tele4:
         st.markdown("__Submit-Last Update Range__")
         st.markdown("_Average difference between submit and last update of All Assigned leads (in days)_")
+        st.markdown(f"Selected date: _{st.session_state.assigned_start_date}_ to _{st.session_state.assigned_end_date}_")
 
         df_avg_difference = df_assigned.groupby("full_name")["submit_update_in_days"].mean().to_frame().reset_index()
         df_avg_difference.columns = ["full_name", "diff_submit_update_in_days"]
@@ -608,7 +622,7 @@ if st.session_state["authentication_status"]:
         df_avg_difference["diff_submit_update_in_days"] = df_avg_difference["diff_submit_update_in_days"].apply(lambda x: "{0:.2f}".format(x))
 
         # ag grid
-        grid_avg_difference = AgGrid(df_avg_difference, editable=True, key="7")
+        grid_avg_difference = AgGrid(df_avg_difference, reload_data=True, theme='streamlit', key="7")
         new_grid_avg_difference = grid_avg_difference["data"]
 
     ############################## END OF CONTENT
