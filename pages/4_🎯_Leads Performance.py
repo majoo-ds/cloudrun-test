@@ -139,8 +139,8 @@ if st.session_state["authentication_status"]:
                                                                             else "Warm Leads" if row["rating"] == 2 or row["rating"] == 3
                                                                             else "Hot Leads" if row["rating"] == 4 or row["rating"] == 5
                                                                             else "Null", axis=1)
-
-            dataframe["hw"] = dataframe.apply(lambda row:
+            # hw by rating
+            dataframe["hw_by_rating"] = dataframe.apply(lambda row:
                                                         "hw" if row["leads_potensial_category"] == "Warm Leads"
                                                         else "hw" if row["leads_potensial_category"] == "Hot Leads"
                                                         else "cold" if row["leads_potensial_category"] == "Cold Leads"
@@ -164,6 +164,14 @@ if st.session_state["authentication_status"]:
                                                             else "Pipeline Warm" if row["total_activity"] >=2
                                                             else "Pipeline Cold" if row["total_activity"] <=1
                                                             else "Pipeline Null", axis=1)
+
+            # hw by activity
+            dataframe["hw_by_activity"] = dataframe.apply(lambda row:
+                                                            "hw" if row["pipeline_by_activity"] == "Pipeline Hot"
+                                                            else "hw" if row["pipeline_by_activity"] == "Pipeline Warm"
+                                                            else "cold" if row["pipeline_by_activity"] == "Pipeline Cold"
+                                                            else "Null", axis=1)
+                                                                    
 
             # deal or no deal
             dataframe["deal"] = dataframe.apply(lambda row: 
@@ -213,7 +221,7 @@ if st.session_state["authentication_status"]:
         # leads type category
         date_start_data = st.date_input("Select start date", value=datetime.datetime.today().replace(day=1), help="Based on submit at")
         date_end_data = st.date_input("Select end date", value=datetime.datetime.today(), help="Based on submit at")
-        type_select = st.selectbox("Type", options=df_all["type"].unique(), index=0)
+        type_select = st.selectbox("Type", options=["campaign", "trial"], index=0)
         status_code_select = st.multiselect("Status Code", options=df_all["status_code"].unique(), default="assigned") 
 
         # SESSION STATE
@@ -240,40 +248,40 @@ if st.session_state["authentication_status"]:
             st.session_state["select_type"] = type_select
             st.session_state["select_status_code"] = status_code_select
     
-    @st.cache
-    def get_filtered():
-
-        dataframe = df_all.loc[
-            (df_all["submit_at"].dt.date >= st.session_state["data_start_date"]) &
-            (df_all["submit_at"].dt.date <= st.session_state["data_end_date"]) &
-            (df_all["type"] == st.session_state["select_type"]) &
-            (df_all["status_code"].isin(st.session_state["select_status_code"]))
-        ].copy()
     
-        return dataframe
 
-    df_filtered = get_filtered()
+    df_filtered = df_all.loc[
+        (df_all["submit_at"].dt.date >= st.session_state["data_start_date"]) &
+        (df_all["submit_at"].dt.date <= st.session_state["data_end_date"]) &
+        (df_all["type"] == st.session_state["select_type"]) &
+        (df_all["status_code"].isin(st.session_state["select_status_code"]))
+    ].copy()
+    
+    
+
     ############################### AG GRID DATAFRAME ###########################
-    gb = GridOptionsBuilder.from_dataframe(df_filtered)
+    # gb = GridOptionsBuilder.from_dataframe(df_filtered)
     
-    update_mode_value = GridUpdateMode.SELECTION_CHANGED
-    return_mode_value = DataReturnMode.FILTERED
+    # update_mode_value = GridUpdateMode.SELECTION_CHANGED
+    # return_mode_value = DataReturnMode.FILTERED
 
-    gb.configure_selection(selection_mode='multiple', use_checkbox=True, groupSelectsFiltered=True, groupSelectsChildren=True)
-    gridOptions = gb.build()
+    # gb.configure_selection(selection_mode='multiple', use_checkbox=True, groupSelectsFiltered=True, groupSelectsChildren=True)
+    # gridOptions = gb.build()
 
-    grid_response = AgGrid(
-        df_filtered,
-        gridOptions=gridOptions,
-        update_mode=update_mode_value,
-        return_mode=return_mode_value,
-        theme='streamlit',
-        width='100%'
-    )
+    # grid_response = AgGrid(
+    #     df_filtered,
+    #     gridOptions=gridOptions,
+    #     update_mode=update_mode_value,
+    #     return_mode=return_mode_value,
+    #     theme='streamlit',
+    #     width='100%'
+    # )
    
     
     ############################### MOST DEAL CAMPAIGNS ###########################
     st.markdown("## Most Deals")
+    ### date range selected 
+    st.markdown(f"Date selected: __{st.session_state['data_start_date']}__ to __{st.session_state['data_end_date']}__")
 
     #### tabs
     tab_1, tab_2, tab_3, tab_4 = st.tabs(["Campaign", "Business Location", "Subscription", "Activity"])
@@ -429,6 +437,100 @@ if st.session_state["authentication_status"]:
         fig_act.update_traces(root_color="lightgrey")
         fig_act.update_layout(margin = dict(t=50, l=25, r=25, b=25))
         st.plotly_chart(fig_act, use_container_width=True)
+
+    ############################### HW CAMPAIGNS ###########################
+    st.markdown("## Most HW")
+    ### date range selected 
+    st.markdown(f"Date selected: __{st.session_state['data_start_date']}__ to __{st.session_state['data_end_date']}__")
+
+    tab_hw1, tab_hw2 = st.tabs(["Hw by Activity", "HW by Status"])
+
+    with tab_hw1:
+        st.markdown("__Campaigns gaining most HW Activity__")
+        st.markdown("_Exclude deal_")
+        # dataframe
+        df_hw_activity = df_filtered.loc[(df_filtered["hw_by_activity"] == "hw") &
+                                        (df_filtered["deal"] != "deal")].copy()
+
+        # select layers of campaign items
+        col_hw_act1, col_hw_act2, col_hw_act3 = st.columns(3)
+
+        # selection
+        hw_act1 = col_hw_act1.selectbox("First Column", options=["m_sourceentry_code", "main_campaign", "campaign_tag", "campaign_name"], index=1, key='act1')
+        hw_act2 = col_hw_act2.selectbox("Second Column", options=["m_sourceentry_code", "main_campaign", "campaign_tag", "campaign_name"], index=2, key='act2')
+        hw_act3 = col_hw_act3.selectbox("Third Column", options=["m_sourceentry_code", "main_campaign", "campaign_tag", "campaign_name"], index=3, key='act3')
+
+        # SESSION STATE
+        if "first_hw_act" not in st.session_state:
+            st.session_state["first_hw_act"] = hw_act1
+
+        if "second_hw_act" not in st.session_state:
+            st.session_state["second_hw_act"] = hw_act2
+
+        if "third_hw_act" not in st.session_state:
+            st.session_state["third_hw_act"] = hw_act3
+
+        # button to update state
+        change_act = st.button("Change filter", key="5")
+
+        # update the state
+        if change_act:
+            st.session_state["first_hw_act"] = hw_act1
+            st.session_state["second_hw_act"] = hw_act2
+            st.session_state["second_hw_act"] = hw_act3
+
+        # groupby dataframe
+        df_hw_act_grouped = df_hw_activity.groupby([st.session_state["first_hw_act"], st.session_state["second_hw_act"], st.session_state["third_hw_act"]])["mt_preleads_code"].count().to_frame().reset_index()
+
+        # graph
+        fig_hw_act = px.icicle(df_hw_act_grouped, path=[px.Constant("all"), st.session_state["first_hw_act"], st.session_state["second_hw_act"], st.session_state["third_hw_act"]], values='mt_preleads_code')
+        fig_hw_act.update_traces(root_color="lightgrey")
+        fig_hw_act.update_layout(margin = dict(t=50, l=25, r=25, b=25))
+        st.plotly_chart(fig_hw_act, use_container_width=True)
+
+    with tab_hw2:
+        st.markdown("__Campaigns gaining most HW Rating__")
+        st.markdown("_Exclude deal_")
+        # dataframe
+        df_hw_rating = df_filtered.loc[(df_filtered["hw_by_rating"] == "hw") &
+                                        (df_filtered["deal"] != "deal")].copy()
+
+        # select layers of campaign items
+        col_hw_rating1, col_hw_rating2, col_hw_rating3 = st.columns(3)
+
+        # selection
+        hw_rating1 = col_hw_rating1.selectbox("First Column", options=["m_sourceentry_code", "main_campaign", "campaign_tag", "campaign_name"], index=1, key='rating1')
+        hw_rating2 = col_hw_rating2.selectbox("Second Column", options=["m_sourceentry_code", "main_campaign", "campaign_tag", "campaign_name"], index=2, key='rating2')
+        hw_rating3 = col_hw_rating3.selectbox("Third Column", options=["m_sourceentry_code", "main_campaign", "campaign_tag", "campaign_name"], index=3, key='rating3')
+
+        # SESSION STATE
+        if "first_hw_rating" not in st.session_state:
+            st.session_state["first_hw_rating"] = hw_rating1
+
+        if "second_hw_rating" not in st.session_state:
+            st.session_state["second_hw_rating"] = hw_rating2
+
+        if "third_hw_rating" not in st.session_state:
+            st.session_state["third_hw_rating"] = hw_rating3
+
+        # button to update state
+        change_rating = st.button("Change filter", key="6")
+
+        # update the state
+        if change_rating:
+            st.session_state["first_hw_rating"] = hw_rating1
+            st.session_state["second_hw_rating"] = hw_rating2
+            st.session_state["second_hw_rating"] = hw_rating3
+
+        # groupby dataframe
+        df_hw_rating_grouped = df_hw_activity.groupby([st.session_state["first_hw_rating"], st.session_state["second_hw_rating"], st.session_state["third_hw_rating"]])["mt_preleads_code"].count().to_frame().reset_index()
+
+        # graph
+        fig_hw_rating = px.icicle(df_hw_rating_grouped, path=[px.Constant("all"), st.session_state["first_hw_rating"], st.session_state["second_hw_rating"], st.session_state["third_hw_rating"]], values='mt_preleads_code')
+        fig_hw_rating.update_traces(root_color="lightgrey")
+        fig_hw_rating.update_layout(margin = dict(t=50, l=25, r=25, b=25))
+        st.plotly_chart(fig_hw_rating, use_container_width=True)
+
 
 
     ############################## CONTENT END HERE ############################################
