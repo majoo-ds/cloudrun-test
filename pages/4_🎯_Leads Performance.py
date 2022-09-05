@@ -326,7 +326,7 @@ if st.session_state["authentication_status"]:
 
         # graph
         fig = px.icicle(df_campaign_grouped, path=[px.Constant("all"), st.session_state["first_campaign"], st.session_state["second_campaign"], st.session_state["third_campaign"]], values='mt_preleads_code')
-        fig.update_traces(root_color="lightgrey")
+        fig.update_traces(root_color="lightgrey", textinfo='percent root+percent parent+label')
         fig.update_layout(margin = dict(t=50, l=25, r=25, b=25))
         st.plotly_chart(fig, use_container_width=True)
 
@@ -365,7 +365,7 @@ if st.session_state["authentication_status"]:
 
         # graph
         fig_business = px.icicle(df_business_grouped, path=[px.Constant("all"), st.session_state["first_business"], st.session_state["second_business"], st.session_state["third_business"]], values='mt_preleads_code')
-        fig_business.update_traces(root_color="lightgrey")
+        fig_business.update_traces(root_color="lightgrey", textinfo='percent root+percent parent+label')
         fig_business.update_layout(margin = dict(t=50, l=25, r=25, b=25))
         st.plotly_chart(fig_business, use_container_width=True)
 
@@ -399,7 +399,7 @@ if st.session_state["authentication_status"]:
 
         # graph
         fig_sub = px.icicle(df_sub_grouped, path=[px.Constant("all"), st.session_state["first_sub"], st.session_state["second_sub"]], values='mt_preleads_code')
-        fig_sub.update_traces(root_color="lightgrey")
+        fig_sub.update_traces(root_color="lightgrey", textinfo='percent root+percent parent+label')
         fig_sub.update_layout(margin = dict(t=50, l=25, r=25, b=25))
         st.plotly_chart(fig_sub, use_container_width=True)
 
@@ -434,7 +434,7 @@ if st.session_state["authentication_status"]:
 
         # graph
         fig_act = px.icicle(df_act_grouped, path=[px.Constant("all"), st.session_state["first_act"], st.session_state["second_act"]], values='mt_preleads_code')
-        fig_act.update_traces(root_color="lightgrey")
+        fig_act.update_traces(root_color="lightgrey", textinfo='percent root+percent parent+label')
         fig_act.update_layout(margin = dict(t=50, l=25, r=25, b=25))
         st.plotly_chart(fig_act, use_container_width=True)
 
@@ -451,7 +451,7 @@ if st.session_state["authentication_status"]:
         # dataframe
         df_hw_activity = df_filtered.loc[(df_filtered["hw_by_activity"] == "hw") &
                                         (df_filtered["deal"] != "deal")].copy()
-
+        
         # select layers of campaign items
         col_hw_act1, col_hw_act2, col_hw_act3 = st.columns(3)
 
@@ -477,16 +477,18 @@ if st.session_state["authentication_status"]:
         if change_act:
             st.session_state["first_hw_act"] = hw_act1
             st.session_state["second_hw_act"] = hw_act2
-            st.session_state["second_hw_act"] = hw_act3
+            st.session_state["third_hw_act"] = hw_act3
 
         # groupby dataframe
         df_hw_act_grouped = df_hw_activity.groupby([st.session_state["first_hw_act"], st.session_state["second_hw_act"], st.session_state["third_hw_act"]])["mt_preleads_code"].count().to_frame().reset_index()
+        
 
         # graph
-        fig_hw_act = px.icicle(df_hw_act_grouped, path=[px.Constant("all"), st.session_state["first_hw_act"], st.session_state["second_hw_act"], st.session_state["third_hw_act"]], values='mt_preleads_code')
-        fig_hw_act.update_traces(root_color="lightgrey")
+        fig_hw_act = px.icicle(df_hw_act_grouped, path=[px.Constant("All Data HW by Activity"), st.session_state["first_hw_act"], st.session_state["second_hw_act"], st.session_state["third_hw_act"]], values='mt_preleads_code')
+        fig_hw_act.update_traces(root_color="lightgrey", textinfo='percent root+percent parent+label')
         fig_hw_act.update_layout(margin = dict(t=50, l=25, r=25, b=25))
         st.plotly_chart(fig_hw_act, use_container_width=True)
+        
 
     with tab_hw2:
         st.markdown("__Campaigns gaining most HW Rating__")
@@ -494,7 +496,7 @@ if st.session_state["authentication_status"]:
         # dataframe
         df_hw_rating = df_filtered.loc[(df_filtered["hw_by_rating"] == "hw") &
                                         (df_filtered["deal"] != "deal")].copy()
-
+        
         # select layers of campaign items
         col_hw_rating1, col_hw_rating2, col_hw_rating3 = st.columns(3)
 
@@ -520,18 +522,114 @@ if st.session_state["authentication_status"]:
         if change_rating:
             st.session_state["first_hw_rating"] = hw_rating1
             st.session_state["second_hw_rating"] = hw_rating2
-            st.session_state["second_hw_rating"] = hw_rating3
+            st.session_state["third_hw_rating"] = hw_rating3
 
         # groupby dataframe
-        df_hw_rating_grouped = df_hw_activity.groupby([st.session_state["first_hw_rating"], st.session_state["second_hw_rating"], st.session_state["third_hw_rating"]])["mt_preleads_code"].count().to_frame().reset_index()
+        df_hw_rating_grouped = df_hw_rating.groupby([st.session_state["first_hw_rating"], st.session_state["second_hw_rating"], st.session_state["third_hw_rating"]])["mt_preleads_code"].count().to_frame().reset_index()
+        
 
         # graph
-        fig_hw_rating = px.icicle(df_hw_rating_grouped, path=[px.Constant("all"), st.session_state["first_hw_rating"], st.session_state["second_hw_rating"], st.session_state["third_hw_rating"]], values='mt_preleads_code')
-        fig_hw_rating.update_traces(root_color="lightgrey")
+        fig_hw_rating = px.icicle(df_hw_rating_grouped, path=[px.Constant("All Data HW by Rating"), st.session_state["first_hw_rating"], st.session_state["second_hw_rating"], st.session_state["third_hw_rating"]], values='mt_preleads_code')
+        fig_hw_rating.update_traces(root_color="lightgrey", textinfo='percent root+percent parent+label')
         fig_hw_rating.update_layout(margin = dict(t=50, l=25, r=25, b=25))
         st.plotly_chart(fig_hw_rating, use_container_width=True)
 
+    ############################### JUNKED and REJECTED ###########################
+    st.markdown("## Most Junked and Rejected")
+    ### date range selected 
+    st.markdown(f"Date selected: __{st.session_state['data_start_date']}__ to __{st.session_state['data_end_date']}__")
+    
+    tab_jr1, tab_jr2 = st.tabs(["Junked Leads", "Rejected Leads"])
 
+    # main dataframe
+    df_filtered_jr = df_all.loc[
+        (df_all["submit_at"].dt.date >= st.session_state["data_start_date"]) &
+        (df_all["submit_at"].dt.date <= st.session_state["data_end_date"])
+    ].copy()
+
+    with tab_jr1:
+        st.markdown("__Campaigns gaining most junked leads__")
+
+        # dataframe
+        df_junked = df_filtered_jr.loc[df_filtered_jr["status_code"] == "junked"].copy()
+
+        # select layers of campaign items
+        col_junked1, col_junked2, col_junked3 = st.columns(3)
+
+        # selection
+        junked1 = col_junked1.selectbox("First Column", options=["m_sourceentry_code", "main_campaign", "campaign_tag", "campaign_name"], index=1, key='junked1')
+        junked2 = col_junked2.selectbox("Second Column", options=["m_sourceentry_code", "main_campaign", "campaign_tag", "campaign_name"], index=2, key='junked2')
+        junked3 = col_junked3.selectbox("Third Column", options=["m_sourceentry_code", "main_campaign", "campaign_tag", "campaign_name"], index=3, key='junked3')
+
+        # SESSION STATE
+        if "first_junked" not in st.session_state:
+            st.session_state["first_junked"] = junked1
+
+        if "second_junked" not in st.session_state:
+            st.session_state["second_junked"] = junked2
+
+        if "third_junked" not in st.session_state:
+            st.session_state["third_junked"] = junked3
+
+        # button to update state
+        change_junked = st.button("Change filter", key="7")
+
+        # update the state
+        if change_junked:
+            st.session_state["first_junked"] = junked1
+            st.session_state["second_junked"] = junked2
+            st.session_state["third_junked"] = junked3
+        
+        # groupby dataframe
+        df_junked_grouped = df_junked.groupby([st.session_state["first_junked"], st.session_state["second_junked"], st.session_state["third_junked"]])["mt_preleads_code"].count().to_frame().reset_index()
+
+        # graph
+        fig_junked = px.icicle(df_junked_grouped, path=[px.Constant("All Junked Leads"), st.session_state["first_junked"], st.session_state["second_junked"], st.session_state["third_junked"]], values='mt_preleads_code')
+        fig_junked.update_traces(root_color="lightgrey", textinfo='percent root+percent parent+label')
+        fig_junked.update_layout(margin = dict(t=50, l=25, r=25, b=25))
+        st.plotly_chart(fig_junked, use_container_width=True)
+
+    with tab_jr2:
+        st.markdown("__Campaigns gaining most rejected leads__")
+
+        # dataframe
+        df_rejected = df_filtered_jr.loc[df_filtered_jr["m_status_code"] == "REJECTED-LEADS"].copy()
+
+        # select layers of campaign items
+        col_rejected1, col_rejected2, col_rejected3 = st.columns(3)
+
+        # selection
+        rejected1 = col_rejected1.selectbox("First Column", options=["m_sourceentry_code", "main_campaign", "campaign_tag", "campaign_name"], index=1, key='rejected1')
+        rejected2 = col_rejected2.selectbox("Second Column", options=["m_sourceentry_code", "main_campaign", "campaign_tag", "campaign_name"], index=2, key='rejected2')
+        rejected3 = col_rejected3.selectbox("Third Column", options=["m_sourceentry_code", "main_campaign", "campaign_tag", "campaign_name"], index=3, key='rejected3')
+
+        # SESSION STATE
+        if "first_rejected" not in st.session_state:
+            st.session_state["first_rejected"] = rejected1
+
+        if "second_rejected" not in st.session_state:
+            st.session_state["second_rejected"] = rejected2
+
+        if "third_rejected" not in st.session_state:
+            st.session_state["third_rejected"] = rejected3
+
+        # button to update state
+        change_rejected = st.button("Change filter", key="8")
+
+        # update the state
+        if change_rejected:
+            st.session_state["first_rejected"] = rejected1
+            st.session_state["second_rejected"] = rejected2
+            st.session_state["third_rejected"] = rejected3
+
+        # groupby dataframe
+        df_rejected_grouped = df_rejected.groupby([st.session_state["first_rejected"], st.session_state["second_rejected"], st.session_state["third_rejected"]])["mt_preleads_code"].count().to_frame().reset_index()
+
+        # graph
+        fig_rejected = px.icicle(df_rejected_grouped, path=[px.Constant("All Rejected Leads"), st.session_state["first_rejected"], st.session_state["second_rejected"], st.session_state["third_rejected"]], values='mt_preleads_code')
+        fig_rejected.update_traces(root_color="lightgrey", textinfo='percent root+percent parent+label')
+        fig_rejected.update_layout(margin = dict(t=50, l=25, r=25, b=25))
+        st.plotly_chart(fig_rejected, use_container_width=True)
 
     ############################## CONTENT END HERE ############################################
 
