@@ -451,9 +451,6 @@ if st.session_state["authentication_status"]:
     df_target_filtered = target_df.loc[(target_df["period"].dt.month_name() == st.session_state.month_target) &
                                     (target_df["period"].dt.year == int(st.session_state.year_target)) &
                                     (target_df["type"] == st.session_state.year_type)].copy()
-
-    # st.dataframe(df_target_filtered)
-    # st.write(df_target_filtered.iat[0,2])
    
 
     # leads dataframe
@@ -722,7 +719,7 @@ if st.session_state["authentication_status"]:
         st.markdown(f"Date range: __{st.session_state.start_date}__ to __{st.session_state.end_date}__")
 
         sunburst_lead_status_code = px.sunburst(df_leads_type_category, path=[df_leads_type_category.columns[0], df_leads_type_category.columns[1]],
-                            title="Leads Category by Status Code", color_discrete_sequence=px.colors.qualitative.Pastel2,
+                            title="Leads Category by Status Code", color_discrete_sequence=px.colors.qualitative.Pastel,
                         values='mt_preleads_code', width=500, height=500)
         sunburst_lead_status_code.update_traces(textinfo="label+percent parent")
         st.plotly_chart(sunburst_lead_status_code, use_container_width=True)
