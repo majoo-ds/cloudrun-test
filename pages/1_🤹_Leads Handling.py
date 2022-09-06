@@ -269,7 +269,7 @@ if st.session_state["authentication_status"]:
     # leads type category
     date_start_assigned = col_assigned1.date_input("Select start date", value=datetime.datetime.today().replace(day=1), help="Based on submit at")
     date_end_assigned = col_assigned2.date_input("Select end date", value=datetime.datetime.today(), help="Based on submit at")
-    num_of_min_activity = col_assigned3.selectbox("Min of Activities", options=range(0,11), index=2, help="Select minimum of total activities to be categorized as 'retouched'. Default is 2")
+    num_of_min_activity = col_assigned3.selectbox("Define Activities as Retouched", options=range(0,11), index=2, help="Select minimum of total activities to be categorized as 'retouched'. Default is 2")
     
 
     # SESSION STATE
@@ -625,6 +625,101 @@ if st.session_state["authentication_status"]:
         grid_avg_difference = AgGrid(df_avg_difference, reload_data=True, theme='streamlit', key="7")
         new_grid_avg_difference = grid_avg_difference["data"]
 
+
+
+    ####################### FUNNEL GRAPH ########################
+    # section title
+    st.subheader("Funnel Chart")
+    st.markdown("Based on __Submit Date__")
+    st.markdown(f"Selected date: _{st.session_state.assigned_start_date}_ to _{st.session_state.assigned_end_date}_")
+
+    ##### main dataframe
+
+    #1 assigned
+    df_assigned_all = df_assigned.groupby("status_code")["mt_preleads_code"].count().to_frame().reset_index()
+    total_assigned = sum(df_assigned_all["mt_preleads_code"])
+    
+
+    #2 FU, NEW, REJECT
+    df_fu_all = df_assigned.loc[df_assigned["m_status_code"].isin(["FOLLOW-UP", "NEW", "REJECTED-LEADS"])].groupby("m_status_code")["mt_preleads_code"].count().to_frame().reset_index()
+    total_fu = sum( df_fu_all["mt_preleads_code"])
+    
+
+    #3 Pipeline
+    df_pipeline_all = df_assigned.loc[df_assigned["deal"] == "pipeline"].groupby("m_status_code")["mt_preleads_code"].count().to_frame().reset_index()
+    total_pipeline = sum(df_pipeline_all["mt_preleads_code"])
+    
+
+    #5 Deal
+    df_deal_all = df_assigned.loc[df_assigned["deal"] == "deal"].groupby("m_status_code")["mt_preleads_code"].count().to_frame().reset_index()
+    df_deal_all = df_deal_all.loc[df_deal_all["mt_preleads_code"] > 0].copy()
+    total_deal = sum(df_deal_all["mt_preleads_code"])
+    
+
+    #6 PAID
+    df_paid_all = df_assigned.loc[df_assigned["m_status_code"] == "PAID"].groupby("m_status_code")["mt_preleads_code"].count().to_frame().reset_index()
+    total_paid = sum(df_paid_all["mt_preleads_code"])
+    
+
+
+    ## FUNNEL GRAPH 
+    fig_funnel = go.Figure(go.Funnel(
+        y = ["Assigned", "FU-NEW-REJECT", "Pipeline", "Deal", "Paid"],
+        x = [total_assigned, total_fu, total_pipeline, total_deal, total_paid],
+        textposition="inside",
+        textinfo="value+percent previous",
+        opacity=0.65,
+        marker={
+            "color": ["royalblue", "gold", "#6495ED", "#FF8C00", "lightblue"]
+        }
+    ))
+    fig_funnel.update_layout({
+    'plot_bgcolor': 'rgba(0, 0, 0, 0)',
+    'paper_bgcolor': 'rgba(0, 0, 0, 0)',
+    })
+
+    st.plotly_chart(fig_funnel, use_container_width=True)
+
+    ############## DETAIL OF GRAPH USING PIE CHART
+    st.markdown("#### Detail of Funnel")
+    ### TABS
+    tab_pie1, tab_pie2, tab_pie3 = st.tabs(["FU-NEW-REJECT", "Pipeline", "Deal"])
+
+    color_pie = ['gold', 'mediumturquoise', 'darkorange', 'lightgreen']
+
+    with tab_pie1:
+        # Title
+        st.markdown("__Detail of FU-NEW-REJECT__")
+        # Total
+        st.metric(label="Total", value=total_fu)
+        # graph
+        donut_fu = go.Figure(data=[go.Pie(labels=df_fu_all.loc[df_fu_all["mt_preleads_code"]>=1, ["m_status_code"]], values=df_fu_all["mt_preleads_code"], hole=.35, pull=[0, 0,0.3])])
+        donut_fu.update_traces(textposition='inside', textinfo='percent+label', textfont_size=12, marker=dict(colors=color_pie, line=dict(color='#000000', width=1.25)))
+        donut_fu.update_layout(title_text=f"Number of Leads  Before Pipeline", width=500, height=500)
+        st.plotly_chart(donut_fu, use_container_width=True)
+
+    with tab_pie2:
+        # Title
+        st.markdown("__Detail of Pipeline__")
+        # Total
+        st.metric(label="Total", value=total_pipeline)
+        # graph
+        donut_pipeline = go.Figure(data=[go.Pie(labels=df_pipeline_all.loc[df_pipeline_all["mt_preleads_code"]>=1, ["m_status_code"]], values=df_pipeline_all["mt_preleads_code"], hole=.35, pull=[0, 0,0.3])])
+        donut_pipeline.update_traces(textposition='inside', textinfo='percent+label', textfont_size=12, marker=dict(colors=color_pie, line=dict(color='#000000', width=1.25)))
+        donut_pipeline.update_layout(title_text=f"Number of Leads  in Pipeline (Before Deal)", width=500, height=500)
+        st.plotly_chart(donut_pipeline, use_container_width=True)
+
+    with tab_pie3:
+        # Title
+        st.markdown("__Detail of Deal__")
+        # Total
+        st.metric(label="Total", value=total_deal)
+        # graph
+        donut_deal = go.Figure(data=[go.Pie(labels=df_deal_all["m_status_code"], values=df_deal_all["mt_preleads_code"], hole=.35, pull=[0, 0,0.3])])
+        donut_deal.update_traces(textposition='inside', textinfo='percent+label', textfont_size=12, marker=dict(colors=color_pie, line=dict(color='#000000', width=1.25)))
+        donut_deal.update_layout(title_text=f"Number of Deal (After Pipeline)", width=500, height=500)
+        st.plotly_chart(donut_deal, use_container_width=True)
+        
     ############################## END OF CONTENT
     
 

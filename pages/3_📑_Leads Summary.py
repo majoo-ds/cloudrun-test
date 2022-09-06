@@ -208,8 +208,8 @@ if st.session_state["authentication_status"]:
     data_load_state.text('Loading data...done!')
     st.write(f"Updated at: {df_all.sort_values(by='last_update', ascending=False).iloc[0]['last_update']}")
 
-    grid_return = AgGrid(df_all.head(50), editable=True)
-    new_df = grid_return["data"]
+    # grid_return = AgGrid(df_all.head(50), editable=True)
+    # new_df = grid_return["data"]
 
     ################################ TOTAL LEADS GENERATED MONTHLY #########################################
     # section title
@@ -557,6 +557,7 @@ if st.session_state["authentication_status"]:
 
     ############# INCLUDING CAMPAIGN WITHIN DATAFRAME ########################
     st.subheader("Number of HW Leads Based on Activity/Rating")
+    st.markdown("_To select activity-based or rating-based, please scroll above (select type filter) and click_ __Change filters__ _button_")
     st.markdown("Based on __Submit Date__")
     # selection widget
     col_hw1, col_hw2 = st.columns(2)
@@ -696,60 +697,91 @@ if st.session_state["authentication_status"]:
     
     
     ####### LEADS CATEGORIES
-    st.markdown(f"Date range: __{st.session_state.start_date}__ to __{st.session_state.end_date}__")
+   
 
-    # DONUT CHART (ALTERNATIVE OF PIE CHART)
-    donut_status_all_year = go.Figure(data=[go.Pie(labels=df_leads_type_category[df_leads_column], values=df_leads_type_category["mt_preleads_code"], hole=.35, pull=[0, 0,0.3])])
-    donut_status_all_year.update_traces(textposition='inside', textinfo='percent+label', textfont_size=12, marker=dict(colors=color_pie, line=dict(color='#000000', width=1.25)))
-    donut_status_all_year.update_layout(title_text=f"Processed Leads Based on Category of {st.session_state.year_target}", width=500, height=500)
-    st.plotly_chart(donut_status_all_year, use_container_width=True)
+    ############## TABS ######################
+    tab_chart1, tab_chart2, tab_chart3 = st.tabs(["Processed Leads By Category", "Leads Category By Status Code", "Processed Leads by Status Code"])
+
+
+    # PIE CHART
+    with tab_chart1:
+        st.markdown("__Number of processed leads and categorized in potential category__")
+        st.markdown("_Please use filter above to be more precise_")
+        st.markdown(f"Date range: __{st.session_state.start_date}__ to __{st.session_state.end_date}__")
+
+        # DONUT CHART (ALTERNATIVE OF PIE CHART)
+        donut_status_all_year = go.Figure(data=[go.Pie(labels=df_leads_type_category[df_leads_column], values=df_leads_type_category["mt_preleads_code"], hole=.35, pull=[0, 0,0.3])])
+        donut_status_all_year.update_traces(textposition='inside', textinfo='percent+label', textfont_size=12, marker=dict(colors=color_pie, line=dict(color='#000000', width=1.25)))
+        donut_status_all_year.update_layout(title_text=f"Processed Leads Based on Category of {st.session_state.year_target}", width=500, height=500)
+        st.plotly_chart(donut_status_all_year, use_container_width=True)
 
    
     # SUNBURST
-    sunburst_lead_status_code = px.sunburst(df_leads_type_category, path=[df_leads_type_category.columns[0], df_leads_type_category.columns[1]],
-                        title="Leads Category by Status Code", color_discrete_sequence=px.colors.qualitative.Pastel2,
-                    values='mt_preleads_code', width=500, height=500)
-    sunburst_lead_status_code.update_traces(textinfo="label+percent parent")
-    st.plotly_chart(sunburst_lead_status_code, use_container_width=True)
+    with tab_chart2:
+        st.markdown("__Number of leads categorized in lead potential category and their status codes__")
+        st.markdown(f"Date range: __{st.session_state.start_date}__ to __{st.session_state.end_date}__")
+
+        sunburst_lead_status_code = px.sunburst(df_leads_type_category, path=[df_leads_type_category.columns[0], df_leads_type_category.columns[1]],
+                            title="Leads Category by Status Code", color_discrete_sequence=px.colors.qualitative.Pastel2,
+                        values='mt_preleads_code', width=500, height=500)
+        sunburst_lead_status_code.update_traces(textinfo="label+percent parent")
+        st.plotly_chart(sunburst_lead_status_code, use_container_width=True)
 
 
     ####### M STATUS CODE
     # DONUT CHART (ALTERNATIVE OF PIE CHART)
-    donut_status_all_year_code = go.Figure(data=[go.Pie(labels=df_leads_type_category["m_status_code"], values=df_leads_type_category["mt_preleads_code"], hole=.35, pull=[0, 0, 0.3])])
-    donut_status_all_year_code.update_traces(textposition='inside', textinfo='percent+label', textfont_size=12, marker=dict(colors=color_pie, line=dict(color='#000000', width=1.25)))
-    donut_status_all_year_code.update_layout(title_text=f"Processed Leads Based on Status Code of {st.session_state.year_target}", width=500, height=500)
-    st.plotly_chart(donut_status_all_year_code, use_container_width=True)
+    with tab_chart3:
+        st.markdown("__Number of leads based on status code only__")
+        st.markdown(f"Date range: __{st.session_state.start_date}__ to __{st.session_state.end_date}__")
+
+        donut_status_all_year_code = go.Figure(data=[go.Pie(labels=df_leads_type_category["m_status_code"], values=df_leads_type_category["mt_preleads_code"], hole=.35, pull=[0, 0, 0.3])])
+        donut_status_all_year_code.update_traces(textposition='inside', textinfo='percent+label', textfont_size=12, marker=dict(colors=color_pie, line=dict(color='#000000', width=1.25)))
+        donut_status_all_year_code.update_layout(title_text=f"Processed Leads Based on Status Code of {st.session_state.year_target}", width=500, height=500)
+        st.plotly_chart(donut_status_all_year_code, use_container_width=True)
 
 
     
-
-
 
     ################## AG GRID #################################
-    st.markdown("__Submit and Update Difference__")
-    
-    df_leads_status_all_year["today"] = pd.to_datetime("today")
-    df_leads_status_all_year["submit_update_difference"] = (df_leads_status_all_year["last_update"] - df_leads_status_all_year["submit_at"])//np.timedelta64(1,"D")
-    df_leads_status_all_year["submit_today_difference"] = (df_leads_status_all_year["today"]- df_leads_status_all_year["submit_at"])//np.timedelta64(1,"D")
-    
-    # count gropuby
-    df_difference = df_leads_status_all_year.loc[df_leads_status_all_year["m_status_code"] == "FOLLOW-UP"].groupby("submit_update_difference")["mt_preleads_code"].count().to_frame().reset_index()
-    df_difference['%_percent'] = df_difference['mt_preleads_code'] / df_difference['mt_preleads_code'].sum()
-    df_difference['%_percent'] = df_difference['%_percent'].apply(lambda x: "{0:.2f}%".format(x*100))
+    st.markdown("#### Intervals in Leads Processing")
+    ##### TABS
+    tab_grid1, tab_grid2 = st.tabs(["Submit-Update", "Submit-Today"])
 
-    grid_return_diff = AgGrid(df_difference, editable=True, key="1")
-    new_df_diff = grid_return_diff["data"]
+    with tab_grid1:
+        st.markdown("__Submit and Update Difference__")
+        st.markdown("_Showing the interval between lead's submitted date and last updated date (in days)_")
+        st.markdown(f"Date range: __{st.session_state.start_date}__ to __{st.session_state.end_date}__")
+        
+        df_leads_status_all_year["today"] = pd.to_datetime("today")
+        df_leads_status_all_year["submit_update_difference"] = (df_leads_status_all_year["last_update"] - df_leads_status_all_year["submit_at"])//np.timedelta64(1,"D")
+        df_leads_status_all_year["submit_today_difference"] = (df_leads_status_all_year["today"]- df_leads_status_all_year["submit_at"])//np.timedelta64(1,"D")
+        
+        # count gropuby
+        df_difference = df_leads_status_all_year.loc[df_leads_status_all_year["m_status_code"] == "FOLLOW-UP"].groupby("submit_update_difference")["mt_preleads_code"].count().to_frame().reset_index()
+        df_difference['%_percent'] = df_difference['mt_preleads_code'] / df_difference['mt_preleads_code'].sum()
+        df_difference['%_percent'] = df_difference['%_percent'].apply(lambda x: "{0:.2f}%".format(x*100))
+        
+        # rename columns
+        df_difference.columns = ["submit_update_interval_in_days", "num_of_leads", "%_of_whole"]
 
-    
+        grid_return_diff = AgGrid(df_difference, editable=True, key="1")
+        new_df_diff = grid_return_diff["data"]
 
-    st.markdown(f"__Submit and Today _({datetime.date.today()})_ Difference__")
-    # count gropuby
-    df_difference_today = df_leads_status_all_year.loc[df_leads_status_all_year["m_status_code"] == "FOLLOW-UP"].groupby("submit_today_difference")["mt_preleads_code"].count().to_frame().reset_index()
-    df_difference_today['%_percent'] = df_difference_today['mt_preleads_code'] / df_difference_today['mt_preleads_code'].sum()
-    df_difference_today['%_percent'] = df_difference_today['%_percent'].apply(lambda x: "{0:.2f}%".format(x*100))
+    with tab_grid2:
+        st.markdown(f"__Submit and Today _({datetime.date.today()})_ Difference__")
+        st.markdown("_Showing the interval between lead's submitted date and today's date (in days)_")
+        st.markdown(f"Date range: __{st.session_state.start_date}__ to __{st.session_state.end_date}__")
+        
+        # count gropuby
+        df_difference_today = df_leads_status_all_year.loc[df_leads_status_all_year["m_status_code"] == "FOLLOW-UP"].groupby("submit_today_difference")["mt_preleads_code"].count().to_frame().reset_index()
+        df_difference_today['%_percent'] = df_difference_today['mt_preleads_code'] / df_difference_today['mt_preleads_code'].sum()
+        df_difference_today['%_percent'] = df_difference_today['%_percent'].apply(lambda x: "{0:.2f}%".format(x*100))
 
-    grid_return_diff_today = AgGrid(df_difference_today, editable=True, key="2")
-    new_df_diff_today = grid_return_diff_today["data"]
+        # rename columns
+        df_difference_today.columns = ["submit_today_interval_in_days", "num_of_leads", "%_of_whole"]
+
+        grid_return_diff_today = AgGrid(df_difference_today, editable=True, key="2")
+        new_df_diff_today = grid_return_diff_today["data"]
 
     
 
