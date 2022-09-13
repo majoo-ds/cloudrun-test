@@ -418,7 +418,7 @@ if st.session_state["authentication_status"]:
     # month
     target_month = col_tar1.selectbox("Select Month", options=month_list, index=month_list.index(datetime.datetime.now().strftime("%B")), key="target")
     # year
-    target_year = col_tar2.selectbox("Select Year", options=year_list, index=year_list.index(datetime.datetime.now().strftime("%Y")), key="target")
+    target_year = col_tar2.selectbox("Select Year", options=year_list, index=year_list.index(datetime.datetime.now().strftime("%Y")), key="target2")
     # type
     target_type = col_tar3.selectbox("Select Type", options=["total leads", "hw"], index=1)
     # method
@@ -569,7 +569,7 @@ if st.session_state["authentication_status"]:
         st.session_state["end_date_hw"] = date_end_hw
 
     # button to update state
-    change_date = st.button("Change date", key="2")
+    change_date = st.button("Change date", key="22")
 
     # update the state
     if change_date:
@@ -649,7 +649,7 @@ if st.session_state["authentication_status"]:
         st.session_state["end_date"] = date_end   
 
     # button to update state
-    change_params = st.button("Change filters", key="1")
+    change_params = st.button("Change filters", key="41")
 
     # update the state
     if change_params:
@@ -761,7 +761,7 @@ if st.session_state["authentication_status"]:
         # rename columns
         df_difference.columns = ["submit_update_interval_in_days", "num_of_leads", "%_of_whole"]
 
-        grid_return_diff = AgGrid(df_difference, editable=True, key="1")
+        grid_return_diff = AgGrid(df_difference, editable=True, key="01")
         new_df_diff = grid_return_diff["data"]
 
     with tab_grid2:
@@ -777,7 +777,7 @@ if st.session_state["authentication_status"]:
         # rename columns
         df_difference_today.columns = ["submit_today_interval_in_days", "num_of_leads", "%_of_whole"]
 
-        grid_return_diff_today = AgGrid(df_difference_today, editable=True, key="2")
+        grid_return_diff_today = AgGrid(df_difference_today, editable=True, key="21")
         new_df_diff_today = grid_return_diff_today["data"]
 
     
