@@ -548,6 +548,7 @@ if st.session_state["authentication_status"]:
         
         # reorder columns
         df_campaign_tele_tag = df_campaign_tele_tag.iloc[: , [0,1,2,3,4,8,5,6,7,9]].copy()
+        df_campaign_tele_tag = df_campaign_tele_tag.loc[df_campaign_tele_tag["assigned_leads"] > 0].copy()
         
         # ag grid
         grid_df_campaign_tele_tag = AgGrid(df_campaign_tele_tag, reload_data=True, theme='streamlit', key="4")
@@ -642,11 +643,13 @@ if st.session_state["authentication_status"]:
 
     #2 FU, NEW, REJECT
     df_fu_all = df_assigned.loc[df_assigned["m_status_code"].isin(["FOLLOW-UP", "NEW", "REJECTED-LEADS"])].groupby("m_status_code")["mt_preleads_code"].count().to_frame().reset_index()
+    df_fu_all = df_fu_all.loc[df_fu_all["mt_preleads_code"] > 0].copy()
     total_fu = sum( df_fu_all["mt_preleads_code"])
     
 
     #3 Pipeline
     df_pipeline_all = df_assigned.loc[df_assigned["deal"] == "pipeline"].groupby("m_status_code")["mt_preleads_code"].count().to_frame().reset_index()
+    df_pipeline_all = df_pipeline_all.loc[df_pipeline_all["mt_preleads_code"] > 0].copy()
     total_pipeline = sum(df_pipeline_all["mt_preleads_code"])
     
 
@@ -693,7 +696,7 @@ if st.session_state["authentication_status"]:
         # Total
         st.metric(label="Total", value=total_fu)
         # graph
-        donut_fu = go.Figure(data=[go.Pie(labels=df_fu_all.loc[df_fu_all["mt_preleads_code"]>=1, ["m_status_code"]], values=df_fu_all["mt_preleads_code"], hole=.35, pull=[0, 0,0.3])])
+        donut_fu = go.Figure(data=[go.Pie(labels=df_fu_all["m_status_code"], values=df_fu_all["mt_preleads_code"], hole=.35, pull=[0, 0.15, 0.3])])
         donut_fu.update_traces(textposition='inside', textinfo='percent+label', textfont_size=12, marker=dict(colors=color_pie, line=dict(color='#000000', width=1.25)))
         donut_fu.update_layout(title_text=f"Number of Leads  Before Pipeline", width=500, height=500)
         st.plotly_chart(donut_fu, use_container_width=True)
@@ -704,7 +707,7 @@ if st.session_state["authentication_status"]:
         # Total
         st.metric(label="Total", value=total_pipeline)
         # graph
-        donut_pipeline = go.Figure(data=[go.Pie(labels=df_pipeline_all.loc[df_pipeline_all["mt_preleads_code"]>=1, ["m_status_code"]], values=df_pipeline_all["mt_preleads_code"], hole=.35, pull=[0, 0,0.3])])
+        donut_pipeline = go.Figure(data=[go.Pie(labels=df_pipeline_all.loc[df_pipeline_all["mt_preleads_code"]>=1, ["m_status_code"]], values=df_pipeline_all["mt_preleads_code"], hole=.35, pull=[0, 0.15, 0.3])])
         donut_pipeline.update_traces(textposition='inside', textinfo='percent+label', textfont_size=12, marker=dict(colors=color_pie, line=dict(color='#000000', width=1.25)))
         donut_pipeline.update_layout(title_text=f"Number of Leads  in Pipeline (Before Deal)", width=500, height=500)
         st.plotly_chart(donut_pipeline, use_container_width=True)
@@ -715,7 +718,7 @@ if st.session_state["authentication_status"]:
         # Total
         st.metric(label="Total", value=total_deal)
         # graph
-        donut_deal = go.Figure(data=[go.Pie(labels=df_deal_all["m_status_code"], values=df_deal_all["mt_preleads_code"], hole=.35, pull=[0, 0,0.3])])
+        donut_deal = go.Figure(data=[go.Pie(labels=df_deal_all["m_status_code"], values=df_deal_all["mt_preleads_code"], hole=.35, pull=[0, 0.15,0.3])])
         donut_deal.update_traces(textposition='inside', textinfo='percent+label', textfont_size=12, marker=dict(colors=color_pie, line=dict(color='#000000', width=1.25)))
         donut_deal.update_layout(title_text=f"Number of Deal (After Pipeline)", width=500, height=500)
         st.plotly_chart(donut_deal, use_container_width=True)
