@@ -547,11 +547,15 @@ if st.session_state["authentication_status"]:
         df_campaign_tele_tag['conversion'] = df_campaign_tele_tag['conversion'].apply(lambda x: "{:.2%}".format(x))
         
         # reorder columns
-        df_campaign_tele_tag = df_campaign_tele_tag.iloc[: , [0,1,2,3,4,8,5,6,7,9]].copy()
+        df_campaign_tele_tag = df_campaign_tele_tag.iloc[: , [0,9,1,2,3,4,8,5,6,7]].copy()
         df_campaign_tele_tag = df_campaign_tele_tag.loc[df_campaign_tele_tag["assigned_leads"] > 0].copy()
         
+        # gridoptions
+        gb = GridOptionsBuilder.from_dataframe(df_campaign_tele_tag)
+        gb.configure_pagination(enabled=True, paginationAutoPageSize=True, paginationPageSize=5)
+        gridOptions = gb.build()
         # ag grid
-        grid_df_campaign_tele_tag = AgGrid(df_campaign_tele_tag, reload_data=True, theme='streamlit', key="4")
+        grid_df_campaign_tele_tag = AgGrid(df_campaign_tele_tag, gridOptions=gridOptions, reload_data=True, theme='streamlit', key="4")
         new_df_campaign_tele_tag = grid_df_campaign_tele_tag["data"]
         
 
