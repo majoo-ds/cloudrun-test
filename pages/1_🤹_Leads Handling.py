@@ -552,7 +552,7 @@ if st.session_state["authentication_status"]:
         
         # gridoptions
         gb = GridOptionsBuilder.from_dataframe(df_campaign_tele_tag)
-        gb.configure_pagination(enabled=True, paginationAutoPageSize=True, paginationPageSize=5)
+        gb.configure_pagination(enabled=True, paginationAutoPageSize=False, paginationPageSize=20)
         gridOptions = gb.build()
         # ag grid
         grid_df_campaign_tele_tag = AgGrid(df_campaign_tele_tag, gridOptions=gridOptions, reload_data=True, theme='streamlit', key="4")
@@ -595,9 +595,18 @@ if st.session_state["authentication_status"]:
         df_used_campaign_tag_grouped = df_used_campaign_tag.groupby(["full_name", "campaign_tag"])["mt_preleads_code"].count().to_frame().reset_index()
         df_used_campaign_tag_pivot = pd.pivot_table(df_used_campaign_tag_grouped, index=["full_name"], columns=["campaign_tag"], values="mt_preleads_code", aggfunc=np.sum)
         df_used_campaign_tag_pivot.reset_index(inplace=True)
+        # sum the columns
+        df_used_campaign_tag_pivot["total_campaign"] = df_used_campaign_tag_pivot.iloc[:, 1:].sum(axis=1)
+        # filter above zero of total_campaign
+        df_used_campaign_tag_pivot = df_used_campaign_tag_pivot[df_used_campaign_tag_pivot["total_campaign"] > 0].copy()
+
+        # grid options
+        gb1 = GridOptionsBuilder.from_dataframe(df_used_campaign_tag_pivot)
+        gb1.configure_pagination(enabled=True, paginationAutoPageSize=False, paginationPageSize=20)
+        gridOptions1 = gb1.build()
 
         # ag grid
-        grid_df_used_campaign_tag = AgGrid(df_used_campaign_tag_pivot, reload_data=True, theme='streamlit', key="5")
+        grid_df_used_campaign_tag = AgGrid(df_used_campaign_tag_pivot, gridOptions=gridOptions1, reload_data=True, theme='streamlit', key="5")
         new_df_used_campaign_tele_tag = grid_df_used_campaign_tag["data"]
 
 
@@ -609,11 +618,18 @@ if st.session_state["authentication_status"]:
         df_avg_activity = df_assigned.groupby("full_name")["total_activity"].mean().to_frame().reset_index()
         df_avg_activity.columns = ["full_name", "average_activity"]
         df_avg_activity['average_activity'] = df_avg_activity['average_activity'].replace(np.nan, 0)
+        # filter average activity above zero
+        df_avg_activity = df_avg_activity.loc[df_avg_activity["average_activity"] > 0].copy()
         df_avg_activity['average_activity'] = df_avg_activity['average_activity'].apply(lambda x: "{0:.2f}".format(x))
         
+        
+        # grid options
+        gb2 = GridOptionsBuilder.from_dataframe(df_avg_activity)
+        gb2.configure_pagination(enabled=True, paginationAutoPageSize=False, paginationPageSize=20)
+        gridOptions2 = gb2.build()
 
         # ag grid
-        grid_avg_activity = AgGrid(df_avg_activity, reload_data=True, theme='streamlit', key="6")
+        grid_avg_activity = AgGrid(df_avg_activity, gridOptions=gridOptions2, reload_data=True, theme='streamlit', key="6")
         new_grid_avg_activity = grid_avg_activity["data"]
 
     with tab_tele4:
@@ -624,10 +640,18 @@ if st.session_state["authentication_status"]:
         df_avg_difference = df_assigned.groupby("full_name")["submit_update_in_days"].mean().to_frame().reset_index()
         df_avg_difference.columns = ["full_name", "diff_submit_update_in_days"]
         df_avg_difference["diff_submit_update_in_days"] = df_avg_difference["diff_submit_update_in_days"].replace(np.nan, 0)
+        # filter diff_submit_update_in_days above zero
+        df_avg_difference = df_avg_difference.loc[df_avg_difference["diff_submit_update_in_days"] > 0].copy()
         df_avg_difference["diff_submit_update_in_days"] = df_avg_difference["diff_submit_update_in_days"].apply(lambda x: "{0:.2f}".format(x))
+        
+
+        # grid options
+        gb3 = GridOptionsBuilder.from_dataframe(df_avg_difference)
+        gb3.configure_pagination(enabled=True, paginationAutoPageSize=False, paginationPageSize=20)
+        gridOptions3 = gb3.build()
 
         # ag grid
-        grid_avg_difference = AgGrid(df_avg_difference, reload_data=True, theme='streamlit', key="7")
+        grid_avg_difference = AgGrid(df_avg_difference, gridOptions=gridOptions3, reload_data=True, theme='streamlit', key="7")
         new_grid_avg_difference = grid_avg_difference["data"]
 
 
